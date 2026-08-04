@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Tienda de aberturas, puertas, rejas, portones, mamparas y accesorios en Concordia.">
+  <title>Aberturas Aluminio Concordia | Tienda oficial</title>
+  <link rel="icon" href="assets/logo-color.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="delivery-zones-data.js" defer></script>
+  <script src="store.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="topbar">
+    <span>Venta y asesoramiento en Concordia y la región</span>
+    <button data-general-whatsapp data-store-phone type="button">WhatsApp: +54 9 345 493 8829</button>
+  </div>
+
+  <header class="site-header">
+    <a class="brand" href="#" aria-label="Aberturas Aluminio Concordia">
+      <img class="brand-logo" src="assets/logo-color.png" alt="Aberturas Aluminio Concordia">
+    </a>
+    <nav aria-label="Navegación principal">
+      <a href="#como-comprar-recibir">Cómo comprar y recibir</a>
+      <a href="#productos">Productos</a>
+      <a href="#contacto">Contacto</a>
+    </nav>
+    <div class="header-actions">
+      <button class="cart-button" id="open-cart" type="button">
+        <span>Carrito</span><b id="cart-count">0</b>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-content">
+        <p class="overline">Calidad, seguridad y diseño</p>
+        <h1>Todo para tus <span>aberturas.</span></h1>
+        <p>Ventanas, puertas, rejas, portones y accesorios con atención personalizada. Elegí el producto, configurá sus opciones y consultá disponibilidad.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#productos">Ver catálogo</a>
+          <button class="button button-whatsapp" data-general-whatsapp type="button">Consultar por WhatsApp</button>
+        </div>
+        <div class="hero-features">
+          <div><b>01</b><span><strong>Compra segura</strong>Confirmamos cada detalle</span></div>
+          <div><b>02</b><span><strong>Atención directa</strong>Asesoramiento especializado</span></div>
+          <div><b>03</b><span><strong>Envíos coordinados</strong>Consultá por tu localidad</span></div>
+        </div>
+      </div>
+      <div class="hero-image" aria-label="Aberturas para hogares y obras">
+        <img src="assets/banner-inicio.webp" alt="Venta online de Aberturas Aluminio Concordia">
+      </div>
+    </section>
+
+    <section class="category-strip" id="category-strip" aria-label="Categorías"></section>
+
+    <section class="purchase-info" id="como-comprar-recibir">
+      <div class="purchase-info-heading">
+        <p class="overline">Compra y entrega</p>
+        <h2 id="commerce-section-title">Cómo comprar y recibir tu pedido</h2>
+        <p id="commerce-section-intro">Información clara para que puedas elegir, comprar y coordinar la entrega con confianza.</p>
+      </div>
+
+      <div class="purchase-info-grid">
+        <article class="trust-card">
+          <span class="trust-icon" aria-hidden="true">$</span>
+          <p class="trust-number">01</p>
+          <h3 id="prices-info-title">Precios actualizados</h3>
+          <p id="prices-info-text">Todos los precios publicados están actualizados. Podés armar tu carrito con las medidas y productos que necesitás.</p>
+          <strong id="prices-info-note">El pedido finaliza por WhatsApp para confirmar disponibilidad, envío y forma de pago.</strong>
+          <div class="purchase-flow" id="purchase-flow"></div>
+        </article>
+
+        <article class="trust-card delivery-card">
+          <span class="trust-icon" aria-hidden="true">⌖</span>
+          <p class="trust-number">02</p>
+          <h3 id="delivery-info-title">Zonas de entrega</h3>
+          <p id="delivery-info-text">Hacemos envíos a Concordia, localidades de Entre Ríos y Corrientes.</p>
+          <form class="locality-search" id="locality-search-form">
+            <label for="locality-search">Consultar por localidad o código postal</label>
+            <div><input id="locality-search" type="search" placeholder="Ej. Concordia o 3200" autocomplete="off"><button type="submit">Consultar</button></div>
+          </form>
+          <div class="locality-suggestions" id="locality-suggestions"></div>
+          <div class="delivery-result" id="delivery-result" hidden></div>
+          <div class="delivery-zone-list">
+            <div class="delivery-zone-list-heading"><strong>Listado de zonas de entrega</strong><span id="delivery-zone-count"></span></div>
+            <div class="delivery-zone-rows" id="delivery-zone-rows"></div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <section class="catalog-section" id="productos">
+      <div class="section-title">
+        <div><p class="overline">Catálogo online</p><h2>Encontrá lo que necesitás</h2></div>
+        <p>Seleccioná medida, mano y color según las opciones disponibles. El precio final y el stock se confirman antes de cerrar la compra.</p>
+      </div>
+
+      <div class="catalog-tools">
+        <label class="search">
+          <span>Buscar</span>
+          <input id="product-search" type="search" placeholder="Código, producto o categoría">
+        </label>
+        <label class="sort">
+          <span>Ordenar por</span>
+          <select id="product-sort">
+            <option value="featured">Destacados</option>
+            <option value="price-asc">Menor precio</option>
+            <option value="price-desc">Mayor precio</option>
+            <option value="name">Nombre</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="catalog-layout">
+        <aside class="filters">
+          <div class="filter-heading"><strong>Categorías</strong><button id="clear-filters" type="button">Ver todas</button></div>
+          <div id="category-filters"></div>
+        </aside>
+        <div>
+          <div class="result-count" id="result-count"></div>
+          <div class="product-grid" id="product-grid"></div>
+          <div class="empty-state" id="empty-state" hidden>
+            <strong>No encontramos productos</strong>
+            <p>Probá otra búsqueda o elegí una categoría diferente.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact-section" id="contacto">
+      <div>
+        <p class="overline">Atención personalizada</p>
+        <h2>¿Tenés dudas sobre medidas o modelos?</h2>
+        <p>Escribinos con las medidas aproximadas y una foto del espacio. Te ayudamos a elegir la mejor alternativa.</p>
+        <button class="button button-whatsapp" data-general-whatsapp type="button">Consultar por WhatsApp</button>
+      </div>
+      <div class="contact-panel">
+        <div><small>LOCAL COMERCIAL</small><strong>Humberto Primero 1166</strong><span>Concordia, Entre Ríos</span></div>
+        <div><small>ATENCIÓN</small><strong>Lunes a viernes</strong><span>Sábados por la mañana</span></div>
+        <div><small>WHATSAPP</small><strong data-store-phone>+54 9 345 493 8829</strong><button class="contact-whatsapp-link" data-general-whatsapp type="button">Iniciar conversación</button></div>
+        <div><small>SITIO WEB</small><strong>aberturasaluminioconcordia.com.ar</strong></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="brand brand-footer">
+      <img class="brand-logo" src="assets/logo-color.png" alt="Aberturas Aluminio Concordia">
+    </div>
+    <p>Productos para construir, renovar y proteger tus espacios.</p>
+    <p>© <span id="year"></span> Aberturas Aluminio Concordia</p>
+  </footer>
+
+  <div class="modal-backdrop" id="product-backdrop" hidden></div>
+  <section class="product-modal" id="product-modal" aria-hidden="true" role="dialog" aria-modal="true">
+    <button class="modal-close" data-close-product type="button" aria-label="Cerrar">×</button>
+    <div id="product-detail"></div>
+  </section>
+
+  <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+  <aside class="cart-drawer" id="cart-drawer" aria-hidden="true">
+    <div class="drawer-header">
+      <div><p class="overline">Tu pedido</p><h2>Carrito</h2></div>
+      <button class="modal-close" id="close-cart" type="button" aria-label="Cerrar">×</button>
+    </div>
+    <div class="cart-items" id="cart-items"></div>
+    <div class="cart-empty" id="cart-empty">
+      <strong>Tu carrito está vacío</strong>
+      <p>Agregá productos para preparar tu consulta.</p>
+      <button class="button button-outline full" id="continue-shopping" type="button">Seguir comprando</button>
+    </div>
+    <div class="cart-summary" id="cart-summary" hidden>
+      <div><span>Subtotal estimado</span><strong id="cart-total">$ 0</strong></div>
+      <small>La compra se confirma por WhatsApp luego de verificar stock, variantes y entrega.</small>
+      <button class="button button-whatsapp full" id="buy-cart" type="button">Comprar por WhatsApp</button>
+      <button class="clear-cart" id="clear-cart" type="button">Vaciar carrito</button>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
