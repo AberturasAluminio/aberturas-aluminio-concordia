@@ -34,6 +34,7 @@
 
     <nav class="admin-tabs" aria-label="Secciones de administración">
       <button class="active" data-tab="products" type="button">Productos</button>
+      <button data-tab="orders" type="button">Pedidos</button>
       <button data-tab="prices" type="button">Actualización de precios</button>
       <button data-tab="excel" type="button">Importar / Exportar Excel</button>
       <button data-tab="delivery" type="button">Localidades y entregas</button>
@@ -52,6 +53,34 @@
           <thead><tr><th>Imagen</th><th>Código</th><th>Producto</th><th>Categoría</th><th>Opciones</th><th>Precio</th><th>Estado</th><th>Destacado</th><th>Acciones</th></tr></thead>
           <tbody id="product-table"></tbody>
         </table>
+      </div>
+    </section>
+
+    <section class="admin-panel" data-panel="orders">
+      <div class="panel-section-heading">
+        <div>
+          <p class="overline">Registro</p><h2>Pedidos recibidos</h2>
+          <p>Cada pedido que se envía por WhatsApp queda guardado acá con los datos de quien compra.</p>
+        </div>
+        <button class="button button-outline" id="export-orders" type="button">Exportar a Excel</button>
+      </div>
+      <div class="panel-toolbar delivery-toolbar">
+        <input id="orders-search" type="search" placeholder="Buscar por nombre, teléfono, localidad o número de pedido">
+        <span id="orders-count"></span>
+      </div>
+      <div class="aviso-local">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r=".7" fill="currentColor"/></svg>
+        <span>Los pedidos se guardan en este navegador. Al conectar la base de datos van a llegar los de todos los visitantes, desde cualquier dispositivo.</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Contacto</th><th>Entrega</th><th>Productos</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="orders-table"></tbody>
+        </table>
+      </div>
+      <div class="orders-empty" id="orders-empty" hidden>
+        <strong>Todavía no hay pedidos</strong>
+        <p>Cuando alguien complete el formulario y envíe el pedido por WhatsApp, va a aparecer en esta lista.</p>
       </div>
     </section>
 
@@ -363,6 +392,18 @@
       </div>
       <div class="modal-actions"><button class="button button-outline" data-close-modal type="button">Cancelar</button><button class="button button-primary" type="submit">Guardar localidad</button></div>
     </form>
+  </section>
+
+  <section class="admin-modal" id="order-detail" aria-hidden="true">
+    <div class="modal-heading">
+      <h2 id="order-detail-title">Pedido</h2>
+      <button class="modal-close" data-close-modal type="button" aria-label="Cerrar">×</button>
+    </div>
+    <div id="order-detail-body"></div>
+    <div class="modal-actions">
+      <button class="button button-outline" data-close-modal type="button">Cerrar</button>
+      <button class="button button-whatsapp" id="order-whatsapp" type="button">Escribirle por WhatsApp</button>
+    </div>
   </section>
 
   <section class="admin-modal wide" id="preview-modal" aria-hidden="true">

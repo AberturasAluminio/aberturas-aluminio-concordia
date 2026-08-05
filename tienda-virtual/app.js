@@ -487,10 +487,39 @@ function cartTotal() {
   }, 0);
 }
 
+/* Queda registrado en el panel junto con los datos de quien compra, para que
+   el negocio tenga el historial además del mensaje. */
+function registrarPedido(datos, total) {
+  const items = state.cart.map((item) => {
+    const product = state.products.find((candidate) => candidate.code === item.code);
+    return {
+      code: item.code,
+      name: product ? product.name : item.code,
+      opciones: [item.measure, item.hand, item.color].filter(Boolean).join(", "),
+      cantidad: item.quantity,
+      precio: esAPedido(item) ? null : (Number(item.price) || product?.price || 0),
+    };
+  });
+  Store.addOrder({
+    cliente: {
+      nombre: datos.nombre.trim(),
+      telefono: datos.telefono.trim(),
+      modo: datos.modo === "retiro" ? "Retiro en el local" : "Envío a domicilio",
+      localidad: datos.modo === "retiro" ? "" : (datos.localidad || "").trim(),
+      direccion: datos.modo === "retiro" ? "" : (datos.direccion || "").trim(),
+      comentarios: (datos.comentarios || "").trim(),
+    },
+    items,
+    total,
+    aCotizar: state.cart.some(esAPedido),
+  });
+}
+
 /* Paso 2: con los datos cargados, el mensaje sale con el pedido completo para
    que el negocio solo tenga que confirmarlo. */
 function enviarPedido(datos) {
   const total = cartTotal();
+  registrarPedido(datos, total);
   const subtotal = state.cart.some(esAPedido)
     ? `Subtotal de lo publicado: ${money.format(total)} (falta cotizar lo que va a medida)`
     : `Subtotal: ${money.format(total)}`;

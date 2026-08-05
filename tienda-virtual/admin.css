@@ -200,6 +200,60 @@ tr:hover td { background: var(--surface); }
 .content-block .form-grid { padding: 0 18px 18px; border-top: 1px solid var(--line-soft); }
 .content-block .form-grid label { margin-top: 14px; }
 
+/* ---------- Pedidos ---------- */
+.stat-orders { border-top-color: var(--orange); }
+.stat-orders strong { color: var(--orange); }
+
+.aviso-local {
+  margin-bottom: 14px;
+  padding: 12px 15px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--blue-tint);
+  border: 1px solid #c9d7f0;
+  border-radius: var(--r);
+  color: var(--ink-mid);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.aviso-local svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--blue); }
+
+.estado-select {
+  min-height: 34px;
+  padding: 4px 8px;
+  width: auto;
+  min-width: 118px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.estado-select.estado-nuevo { color: var(--orange); border-color: var(--orange); background: var(--orange-tint); }
+.estado-select.estado-confirmado { color: #0f6b3f; border-color: #bfe0cd; background: #e2f2e9; }
+.estado-select.estado-entregado { color: var(--blue); border-color: #bcd6ea; background: var(--blue-tint); }
+.estado-select.estado-cancelado { color: var(--ink-soft); background: var(--surface); }
+.a-cotizar { color: var(--orange); font-size: 11px; font-style: normal; font-weight: 600; }
+
+.orders-empty {
+  padding: 46px 20px;
+  text-align: center;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-top: 0;
+}
+.orders-empty strong { display: block; margin-bottom: 6px; color: var(--ink); font-size: 16px; }
+.orders-empty p { margin: 0; color: var(--ink-soft); font-size: 13px; }
+
+.order-meta { margin: 16px 0 4px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--ink-soft); font-size: 12.5px; }
+.order-subtitle { margin: 18px 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-mid); }
+.order-datos { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 7px 18px; font-size: 13px; }
+.order-datos dt { color: var(--ink-soft); }
+.order-datos dd { margin: 0; color: var(--ink); font-weight: 500; }
+.order-items { margin-top: 4px; }
+.order-items td { padding: 9px 10px 9px 0; vertical-align: top; }
+.order-items tr:hover td { background: none; }
+.order-total { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); text-align: right; font-size: 14px; }
+.order-total strong { color: var(--blue); font-size: 19px; }
+
 .danger-zone { margin-top: 18px; border-left: 3px solid var(--orange); }
 .danger-zone h2 { font-size: 18px; }
 

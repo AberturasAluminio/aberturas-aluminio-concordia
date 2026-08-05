@@ -3,6 +3,7 @@
   const SETTINGS_KEY = "aac-store-settings-v2";
   const CART_KEY = "aac-store-cart-v2";
   const BUYER_KEY = "aac-store-buyer-v1";
+  const ORDERS_KEY = "aac-store-orders-v1";
   const DELIVERY_KEY = "aac-store-delivery-zones-v1";
   // v3: ahora el panel edita todos los textos de la web, no solo los de compra.
   const CONTENT_KEY = "aac-store-commerce-content-v3";
@@ -293,6 +294,51 @@
     localStorage.setItem(BUYER_KEY, JSON.stringify(buyer));
   }
 
+  /* ---------- Pedidos ----------
+     Se registra cada pedido que se manda por WhatsApp para que el negocio
+     tenga el historial. Con almacenamiento en el navegador solo se ven los
+     hechos en ESTE equipo: al pasar a base de datos llegan todos. */
+  const ORDER_STATES = ["Nuevo", "Confirmado", "Entregado", "Cancelado"];
+
+  function getOrders() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(ORDERS_KEY));
+      return Array.isArray(saved) ? saved : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveOrders(orders) {
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+  }
+
+  function addOrder(order) {
+    const orders = getOrders();
+    const registro = {
+      id: globalThis.crypto?.randomUUID?.() || `ped-${Date.now()}`,
+      numero: `#${String(orders.length + 1).padStart(4, "0")}`,
+      fecha: new Date().toISOString(),
+      estado: ORDER_STATES[0],
+      cliente: order.cliente,
+      items: order.items,
+      total: order.total,
+      aCotizar: order.aCotizar === true,
+    };
+    orders.unshift(registro);
+    saveOrders(orders);
+    return registro;
+  }
+
+  function updateOrderState(id, estado) {
+    const orders = getOrders().map((order) => (order.id === id ? { ...order, estado } : order));
+    saveOrders(orders);
+  }
+
+  function deleteOrder(id) {
+    saveOrders(getOrders().filter((order) => order.id !== id));
+  }
+
   function splitOptions(value) {
     if (Array.isArray(value)) return [...new Set(value.map(String).map((item) => item.trim()).filter(Boolean))];
     return [...new Set(String(value || "").split(/\s*[;|/]\s*|\s*,\s*/).map((item) => item.trim()).filter(Boolean))];
@@ -342,6 +388,7 @@
       zonas: getDeliveryZones(),
       textos: getCommerceContent(),
       configuracion: getSettings(),
+      pedidos: getOrders(),
     };
   }
 
@@ -349,7 +396,7 @@
     if (!data || data.formato !== "aac-backup") {
       throw new Error("El archivo no es una copia de seguridad de esta tienda.");
     }
-    const resumen = { productos: 0, zonas: 0, textos: false, configuracion: false };
+    const resumen = { productos: 0, zonas: 0, pedidos: 0, textos: false, configuracion: false };
     if (Array.isArray(data.productos)) {
       saveProducts(data.productos.map(normalizeProduct));
       resumen.productos = data.productos.length;
@@ -365,6 +412,10 @@
     if (data.configuracion && typeof data.configuracion === "object") {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...defaultSettings, ...data.configuracion }));
       resumen.configuracion = true;
+    }
+    if (Array.isArray(data.pedidos)) {
+      saveOrders(data.pedidos);
+      resumen.pedidos = data.pedidos.length;
     }
     return resumen;
   }
@@ -388,6 +439,11 @@
     saveCart,
     getBuyer,
     saveBuyer,
+    ORDER_STATES,
+    getOrders,
+    addOrder,
+    updateOrderState,
+    deleteOrder,
     splitOptions,
     normalizeProduct,
     resetProducts: () => saveProducts(clone(defaults)),

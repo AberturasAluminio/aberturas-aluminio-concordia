@@ -5,6 +5,7 @@ const adminState = {
   deliveryZones: Store.getDeliveryZones(),
   commerceContent: Store.getCommerceContent(),
   preview: null,
+  currentOrder: null,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -36,9 +37,104 @@ function renderAll() {
     <article class="stat-card"><small>Productos</small><strong>${adminState.products.length}</strong></article>
     <article class="stat-card"><small>Publicados</small><strong>${active}</strong></article>
     <article class="stat-card"><small>En destacados</small><strong>${adminState.products.filter((product) => product.featured && product.active).length}</strong></article>
-    <article class="stat-card"><small>Sin imagen propia</small><strong>${adminState.products.filter((product) => !product.image).length}</strong></article>`;
+    <article class="stat-card stat-orders"><small>Pedidos nuevos</small><strong>${Store.getOrders().filter((order) => order.estado === "Nuevo").length}</strong></article>`;
   renderTable();
   renderDeliveryZones();
+  renderOrders();
+}
+
+/* ---------- Pedidos ---------- */
+const fechaCorta = (iso) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+};
+
+function renderOrders() {
+  const query = normalizeHeader($("#orders-search")?.value || "");
+  const todos = Store.getOrders();
+  const visibles = todos.filter((order) => {
+    if (!query) return true;
+    const texto = normalizeHeader(`${order.numero} ${order.cliente.nombre} ${order.cliente.telefono} ${order.cliente.localidad} ${order.estado}`);
+    return texto.includes(query);
+  });
+
+  $("#orders-count").textContent = `${visibles.length} de ${todos.length} pedido${todos.length === 1 ? "" : "s"}`;
+  $("#orders-empty").hidden = todos.length > 0;
+
+  $("#orders-table").innerHTML = visibles.map((order) => {
+    const unidades = order.items.reduce((sum, item) => sum + item.cantidad, 0);
+    return `<tr>
+      <td class="code-cell">${esc(order.numero)}</td>
+      <td><small>${esc(fechaCorta(order.fecha))}</small></td>
+      <td><strong>${esc(order.cliente.nombre)}</strong>${order.cliente.localidad ? `<br><small>${esc(order.cliente.localidad)}</small>` : ""}</td>
+      <td><small>${esc(order.cliente.telefono)}</small></td>
+      <td><small>${esc(order.cliente.modo)}</small></td>
+      <td><small>${unidades} ${unidades === 1 ? "unidad" : "unidades"}</small></td>
+      <td class="price-cell">${money.format(order.total)}${order.aCotizar ? '<br><small class="a-cotizar">+ a cotizar</small>' : ""}</td>
+      <td>
+        <select class="estado-select estado-${normalizeHeader(order.estado)}" data-order-state="${esc(order.id)}">
+          ${Store.ORDER_STATES.map((estado) => `<option value="${esc(estado)}" ${estado === order.estado ? "selected" : ""}>${esc(estado)}</option>`).join("")}
+        </select>
+      </td>
+      <td><div class="table-actions">
+        <button data-order-view="${esc(order.id)}" type="button">Ver</button>
+        <button class="delete" data-order-delete="${esc(order.id)}" type="button">Eliminar</button>
+      </div></td>
+    </tr>`;
+  }).join("");
+}
+
+function openOrderDetail(id) {
+  const order = Store.getOrders().find((item) => item.id === id);
+  if (!order) return;
+  adminState.currentOrder = order;
+  $("#order-detail-title").textContent = `Pedido ${order.numero}`;
+  const c = order.cliente;
+  $("#order-detail-body").innerHTML = `
+    <div class="order-meta">
+      <span>${esc(fechaCorta(order.fecha))}</span>
+      <span class="status ${order.estado === "Cancelado" ? "inactive" : "active"}">${esc(order.estado)}</span>
+    </div>
+
+    <h3 class="order-subtitle">Cliente</h3>
+    <dl class="order-datos">
+      <dt>Nombre</dt><dd>${esc(c.nombre)}</dd>
+      <dt>Teléfono</dt><dd>${esc(c.telefono)}</dd>
+      <dt>Entrega</dt><dd>${esc(c.modo)}</dd>
+      ${c.localidad ? `<dt>Localidad</dt><dd>${esc(c.localidad)}</dd>` : ""}
+      ${c.direccion ? `<dt>Dirección</dt><dd>${esc(c.direccion)}</dd>` : ""}
+      ${c.comentarios ? `<dt>Comentarios</dt><dd>${esc(c.comentarios)}</dd>` : ""}
+    </dl>
+
+    <h3 class="order-subtitle">Productos</h3>
+    <table class="order-items">
+      <tbody>
+        ${order.items.map((item) => `<tr>
+          <td><strong>${esc(item.name)}</strong><br><small>${esc(item.code)}${item.opciones ? ` · ${esc(item.opciones)}` : ""}</small></td>
+          <td>${item.cantidad}</td>
+          <td class="price-cell">${item.precio === null ? '<em class="a-cotizar">A cotizar</em>' : money.format(item.precio * item.cantidad)}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+    <p class="order-total">Total: <strong>${money.format(order.total)}</strong>${order.aCotizar ? ' <em class="a-cotizar">+ lo que falta cotizar</em>' : ""}</p>`;
+  openModal("#order-detail");
+}
+
+function ordersToRows() {
+  const encabezado = ["Pedido", "Fecha", "Cliente", "Teléfono", "Entrega", "Localidad", "Dirección", "Comentarios", "Productos", "Total", "Estado"];
+  return [encabezado, ...Store.getOrders().map((order) => [
+    order.numero,
+    fechaCorta(order.fecha),
+    order.cliente.nombre,
+    order.cliente.telefono,
+    order.cliente.modo,
+    order.cliente.localidad,
+    order.cliente.direccion,
+    order.cliente.comentarios,
+    order.items.map((item) => `${item.cantidad}x ${item.name}${item.opciones ? ` (${item.opciones})` : ""}`).join(" · "),
+    order.total,
+    order.estado,
+  ])];
 }
 
 function renderDeliveryZones() {
@@ -341,6 +437,41 @@ $("#product-table").addEventListener("click", (event) => {
     persist();
   }
 });
+$("#orders-search").addEventListener("input", renderOrders);
+$("#orders-table").addEventListener("click", (event) => {
+  const ver = event.target.closest("[data-order-view]");
+  const borrar = event.target.closest("[data-order-delete]");
+  if (ver) openOrderDetail(ver.dataset.orderView);
+  if (borrar) {
+    const order = Store.getOrders().find((item) => item.id === borrar.dataset.orderDelete);
+    if (order && confirm(`¿Eliminar el pedido ${order.numero} de ${order.cliente.nombre}? No se puede deshacer.`)) {
+      Store.deleteOrder(order.id);
+      renderAll();
+      showToast("Pedido eliminado");
+    }
+  }
+});
+$("#orders-table").addEventListener("change", (event) => {
+  const select = event.target.closest("[data-order-state]");
+  if (!select) return;
+  Store.updateOrderState(select.dataset.orderState, select.value);
+  renderAll();   // el contador de pedidos nuevos vive en las estadísticas
+  showToast(`Pedido marcado como ${select.value.toLowerCase()}`);
+});
+$("#order-whatsapp").addEventListener("click", () => {
+  const order = adminState.currentOrder;
+  if (!order) return;
+  const telefono = String(order.cliente.telefono).replace(/\D/g, "");
+  if (!telefono) return showToast("El pedido no tiene un teléfono válido");
+  const numero = telefono.startsWith("54") ? telefono : `54${telefono}`;
+  const texto = `Hola ${order.cliente.nombre}, te escribimos por tu pedido ${order.numero}.`;
+  window.open(`https://wa.me/${numero}?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
+});
+$("#export-orders").addEventListener("click", () => {
+  if (!Store.getOrders().length) return showToast("Todavía no hay pedidos para exportar");
+  XlsxUtils.download("pedidos.xlsx", ordersToRows());
+});
+
 $("#new-delivery-zone").addEventListener("click", () => openDeliveryEditor());
 $("#delivery-zone-search").addEventListener("input", renderDeliveryZones);
 $("#delivery-zone-table").addEventListener("click", (event) => {
