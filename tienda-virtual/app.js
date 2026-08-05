@@ -14,17 +14,26 @@ const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 
+// Iconos de línea, 24x24, trazo uniforme. Geometría recta para acompañar el
+// isotipo del logo. Se inyectan con innerHTML: son constantes, no datos.
+const svg = (paths) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true">${paths}</svg>`;
+
 const categoryIcons = {
-  "Ventanas de aluminio": "▦",
-  "Ventanas aluminio con rejas": "▥",
-  "Puertas de chapa": "▯",
-  "Puertas placa": "▮",
-  "Puertas de aluminio": "▰",
-  "Rejas": "▦",
-  "Portones": "▤",
-  "Mamparas": "◫",
-  "Accesorios": "◆",
+  "Ventanas de aluminio": svg('<rect x="3" y="4" width="18" height="16"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="8" y1="11" x2="8" y2="13"/><line x1="16" y1="11" x2="16" y2="13"/>'),
+  "Ventanas aluminio con rejas": svg('<rect x="3" y="4" width="18" height="16"/><line x1="8" y1="4" x2="8" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="16" y1="4" x2="16" y2="20"/>'),
+  "Puertas de chapa": svg('<rect x="6" y="3" width="12" height="18"/><line x1="9" y1="12" x2="10" y2="12"/><line x1="6" y1="7" x2="18" y2="7"/><line x1="6" y1="17" x2="18" y2="17"/>'),
+  "Puertas placa": svg('<rect x="6" y="3" width="12" height="18"/><rect x="9" y="6" width="6" height="5"/><rect x="9" y="14" width="6" height="4"/>'),
+  "Puertas de aluminio": svg('<rect x="6" y="3" width="12" height="18"/><rect x="8.5" y="5.5" width="7" height="7"/><line x1="9" y1="16" x2="10" y2="16"/>'),
+  "Rejas": svg('<rect x="3" y="5" width="18" height="14"/><line x1="8" y1="5" x2="8" y2="19"/><line x1="13" y1="5" x2="13" y2="19"/><line x1="18" y1="5" x2="18" y2="19"/><line x1="3" y1="12" x2="21" y2="12"/>'),
+  "Portones": svg('<rect x="2" y="6" width="20" height="12"/><line x1="7" y1="6" x2="7" y2="18"/><line x1="12" y1="6" x2="12" y2="18"/><line x1="17" y1="6" x2="17" y2="18"/><line x1="2" y1="21" x2="22" y2="21"/>'),
+  "Mamparas": svg('<rect x="3" y="3" width="9" height="18"/><rect x="12" y="3" width="9" height="18"/><line x1="6" y1="11" x2="6" y2="14"/>'),
+  "Accesorios": svg('<rect x="3" y="4" width="18" height="16"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/>'),
 };
+const fallbackIcon = svg('<rect x="4" y="4" width="16" height="16"/>');
+
+// Iconos de acción reutilizados en los botones que se generan por JS.
+const ICON_WA = '<svg class="icon-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.04 2.02c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22.06l5.3-1.39c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01a9.86 9.86 0 0 0-7.01-2.94z"/><path fill="var(--wa-ink, #fff)" d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37s-1.04 1.02-1.04 2.48 1.06 2.88 1.21 3.08c.15.2 2.09 3.2 5.07 4.48.71.31 1.26.49 1.69.63.71.23 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35z"/></svg>';
+const ICON_CART = '<svg class="icon-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16l-1.4 12.2a1.6 1.6 0 0 1-1.6 1.4H7a1.6 1.6 0 0 1-1.6-1.4z"/><path d="M9 10V6.2A2.2 2.2 0 0 1 11.2 4h1.6A2.2 2.2 0 0 1 15 6.2V10"/></svg>';
 
 function normalizeText(value) {
   return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es").trim();
@@ -45,8 +54,11 @@ function applyCommerceContent() {
     const element = $(selector);
     if (element) element.textContent = value;
   });
+  // Los pasos salen del texto editable del panel, separados por "|".
   const flow = String(content.purchaseFlow || "").split("|").map((item) => item.trim()).filter(Boolean);
-  $("#purchase-flow").innerHTML = flow.map((item, index) => `${index ? "<i>→</i>" : ""}<span>${esc(item)}</span>`).join("");
+  $("#purchase-flow").innerHTML = flow
+    .map((item, index) => `<li><span class="step-n">${index + 1}</span><span class="step-text">${esc(item)}</span></li>`)
+    .join("");
   const phone = Store.getSettings().whatsapp;
   const formattedPhone = phone === "5493454938829" ? "+54 9 345 493 8829" : `+${phone}`;
   document.querySelectorAll("[data-store-phone]").forEach((element) => {
@@ -89,7 +101,7 @@ function deliveryZoneCard(zone) {
         <dt>Frecuencia</dt><dd>${esc(zone.deliveryDays || "A confirmar")}</dd>
         <dt>Condición de pago</dt><dd>${esc(zone.paymentCondition || (zone.cashOnDelivery ? "Pago al recibir disponible" : "A confirmar"))}</dd>
       </dl>
-      <button class="button button-whatsapp button-small" data-zone-whatsapp="${esc(zone.locality)}" type="button">Consultar esta entrega</button>
+      <button class="button button-whatsapp button-small" data-zone-whatsapp="${esc(zone.locality)}" type="button">${ICON_WA}Consultar esta entrega</button>
     </article>`;
 }
 
@@ -99,7 +111,7 @@ function renderDeliveryResult(zones, searchValue = "") {
   state.selectedDeliveryZone = zones[0] || null;
   if (!zones.length) {
     container.className = "delivery-result unavailable";
-    container.innerHTML = `<h4>Consultanos por ${esc(searchValue)}</h4><p>No encontramos una localidad o CP coincidente. Escribinos para verificar recorrido y condición de pago.</p><button class="button button-whatsapp button-small" data-zone-whatsapp="${esc(searchValue)}" type="button">Consultar por WhatsApp</button>`;
+    container.innerHTML = `<h4>Consultanos por ${esc(searchValue)}</h4><p>No encontramos una localidad o CP coincidente. Escribinos para verificar recorrido y condición de pago.</p><button class="button button-whatsapp button-small" data-zone-whatsapp="${esc(searchValue)}" type="button">${ICON_WA}Consultar por WhatsApp</button>`;
     return;
   }
   const zone = zones[0];
@@ -164,8 +176,8 @@ function productGallery(product) {
 function renderCategories() {
   const counts = Object.fromEntries(Store.categories.map((category) => [category, state.products.filter((product) => product.active && product.category === category).length]));
   $("#category-strip").innerHTML = Store.categories.map((category) => `
-    <button class="category-card ${state.category === category ? "active" : ""}" data-category="${esc(category)}" type="button">
-      <b>${categoryIcons[category] || "◆"}</b><span>${esc(category)}</span>
+    <button class="nav-category ${state.category === category ? "active" : ""}" data-category="${esc(category)}" type="button">
+      <b>${categoryIcons[category] || fallbackIcon}</b><span>${esc(category)}</span>
     </button>
   `).join("");
   $("#category-filters").innerHTML = `
@@ -188,42 +200,42 @@ function filteredProducts() {
   return visible;
 }
 
+/* Ficha compacta: la imagen manda, el detalle completo vive en el modal.
+   El precio se muestra "desde" porque cada medida tiene el suyo. */
+function productCard(product) {
+  const medidas = product.variants.length;
+  return `
+    <article class="product-card">
+      <button class="product-media" data-view="${esc(product.code)}" type="button" aria-label="Ver ${esc(product.name)}">
+        ${productVisual(product)}
+        <span class="product-code">${esc(product.code)}</span>
+      </button>
+      <div class="product-body">
+        <span class="product-category">${esc(product.category)}</span>
+        <h3>${esc(product.name)}</h3>
+        <p class="product-measures">${medidas} medida${medidas === 1 ? "" : "s"} disponible${medidas === 1 ? "" : "s"}${product.colors.length ? ` · ${esc(product.colors.join(" / "))}` : ""}</p>
+        <div class="product-price">
+          <small>Desde</small>
+          <strong>${money.format(product.price)}</strong>
+        </div>
+        <button class="button button-buy full" data-quick-buy="${esc(product.code)}" type="button">${ICON_CART}Comprar</button>
+        <button class="whatsapp-link" data-product-whatsapp="${esc(product.code)}" type="button">${ICON_WA}Consultar por WhatsApp</button>
+      </div>
+    </article>`;
+}
+
 function renderProducts() {
   const visible = filteredProducts();
   $("#result-count").textContent = `${visible.length} producto${visible.length === 1 ? "" : "s"}`;
-  $("#product-grid").innerHTML = visible.map((product) => `
-    <article class="product-card">
-      <div class="product-image">
-        ${productVisual(product)}
-        <span class="product-code">${esc(product.code)}</span>
-      </div>
-      <div class="product-content">
-        <span class="product-category">${esc(product.category)}</span>
-        <h3>${esc(product.name)}</h3>
-        <p class="product-detail-text">${esc(product.detail)}</p>
-        <div class="product-variant-list">
-          <strong>Medidas y precios disponibles</strong>
-          <div>
-            ${product.variants.map((variant) => `<span><b>${esc(variant.measure)}</b><em>${money.format(variant.price)}</em></span>`).join("")}
-          </div>
-        </div>
-        <div class="product-options-summary">
-          ${product.hands.length ? `<span>Mano: ${esc(product.hands.join(" / "))}</span>` : ""}
-          ${product.colors.length ? `<span>Color: ${esc(product.colors.join(" / "))}</span>` : ""}
-        </div>
-        <div class="product-price">
-          <span>Precio desde<strong>${money.format(product.price)}</strong></span>
-          <b class="stock-label">Consultar stock</b>
-        </div>
-        <div class="product-actions">
-          <button class="button button-primary" data-quick-add="${esc(product.code)}" type="button">Agregar al carrito</button>
-          <button class="button button-blue" data-quick-buy="${esc(product.code)}" type="button">Comprar</button>
-          <button class="whatsapp-link" data-product-whatsapp="${esc(product.code)}" type="button">Consultar por WhatsApp</button>
-        </div>
-      </div>
-    </article>
-  `).join("");
+  $("#product-grid").innerHTML = visible.map(productCard).join("");
   $("#empty-state").hidden = visible.length > 0;
+}
+
+function renderFeatured() {
+  const grid = $("#featured-grid");
+  if (!grid) return;
+  const featured = state.products.filter((product) => product.active).slice(0, 4);
+  grid.innerHTML = featured.map(productCard).join("");
 }
 
 function selectOptions(label, name, values) {
@@ -256,9 +268,9 @@ function openProduct(code, intent = "view") {
           </div>
           <p class="validation-message" id="variant-error" hidden>Seleccioná todas las opciones disponibles.</p>
           <div class="detail-actions">
-            <button class="button button-primary" data-detail-add type="button">Agregar al carrito</button>
-            <button class="button button-blue" data-detail-buy type="button">Comprar</button>
-            <button class="button button-whatsapp" data-detail-whatsapp type="button">Consultar por WhatsApp</button>
+            <button class="button button-outline" data-detail-add type="button">Agregar al carrito</button>
+            <button class="button button-buy" data-detail-buy type="button">${ICON_CART}Comprar</button>
+            <button class="button button-whatsapp" data-detail-whatsapp type="button">${ICON_WA}Consultar por WhatsApp</button>
           </div>
         </form>
       </div>
@@ -392,7 +404,7 @@ function setCategory(category) {
   state.category = category;
   renderCategories();
   renderProducts();
-  $("#productos").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("#catalogo").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 document.addEventListener("click", (event) => {
@@ -466,8 +478,39 @@ $("#cart-items").addEventListener("click", (event) => {
 });
 document.addEventListener("keydown", (event) => { if (event.key === "Escape") { closeProduct(); closeCart(); } });
 
+// Flechas del menú de categorías: solo se muestran si hay contenido fuera de vista.
+const navStrip = $("#category-strip");
+function updateNavArrows() {
+  const resto = navStrip.scrollWidth - navStrip.clientWidth;
+  $("#nav-prev").hidden = resto < 4 || navStrip.scrollLeft < 4;
+  $("#nav-next").hidden = resto < 4 || navStrip.scrollLeft > resto - 4;
+}
+// No alcanza con escuchar "scroll": con desplazamiento suave el evento puede no
+// llegar, así que refrescamos también cuando el movimiento ya terminó.
+function scrollNav(dir) {
+  navStrip.scrollBy({ left: dir * navStrip.clientWidth * .7, behavior: "smooth" });
+  setTimeout(updateNavArrows, 420);
+}
+$("#nav-prev").addEventListener("click", () => scrollNav(-1));
+$("#nav-next").addEventListener("click", () => scrollNav(1));
+navStrip.addEventListener("scroll", updateNavArrows, { passive: true });
+window.addEventListener("resize", updateNavArrows);
+$("#nav-all").addEventListener("click", () => setCategory("Todas"));
+
+// El buscador del header alimenta el mismo filtro del catálogo y baja hasta él.
+$("#head-search-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const value = $("#head-search").value;
+  state.search = value;
+  $("#product-search").value = value;
+  renderProducts();
+  $("#catalogo").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
 $("#year").textContent = new Date().getFullYear();
 applyCommerceContent();
 renderCategories();
 renderProducts();
+renderFeatured();
 renderCart();
+updateNavArrows();

@@ -3,7 +3,8 @@
   const SETTINGS_KEY = "aac-store-settings-v2";
   const CART_KEY = "aac-store-cart-v2";
   const DELIVERY_KEY = "aac-store-delivery-zones-v1";
-  const CONTENT_KEY = "aac-store-commerce-content-v1";
+  // v2: los textos cambiaron al separar "Cómo comprar" de "Zonas de entrega".
+  const CONTENT_KEY = "aac-store-commerce-content-v2";
   const DELIVERY_REVISION_KEY = "aac-store-delivery-revision";
   const DELIVERY_REVISION = 1;
   const CATALOG_REVISION_KEY = "aac-store-catalog-revision";
@@ -50,14 +51,14 @@
     : fallbackDeliveryZones;
 
   const defaultCommerceContent = {
-    sectionTitle: "Cómo comprar y recibir tu pedido",
-    sectionIntro: "Información clara para que puedas elegir, comprar y coordinar la entrega con confianza.",
+    sectionTitle: "Cómo comprar",
+    sectionIntro: "Cuatro pasos, sin registro ni pagos online. Cerrás el pedido hablando con nosotros.",
     pricesTitle: "Precios actualizados",
-    pricesText: "Todos los precios publicados están actualizados. Podés armar tu carrito con las medidas y productos que necesitás.",
+    pricesText: "Buscá por nombre de localidad o código postal para ver la frecuencia de reparto y la condición de pago disponible.",
     pricesNote: "El pedido finaliza por WhatsApp para confirmar disponibilidad, envío y forma de pago.",
-    purchaseFlow: "Ver productos | Agregar al carrito | Enviar pedido por WhatsApp | Confirmar compra",
+    purchaseFlow: "Elegí el producto y la medida | Agregalo al carrito | Enviá el pedido por WhatsApp | Coordinamos entrega y pago",
     deliveryTitle: "Zonas de entrega",
-    deliveryText: "Hacemos envíos a Concordia, localidades de Entre Ríos y Corrientes.",
+    deliveryText: "Hacemos envíos a Concordia, localidades de Entre Ríos y centro-sur de Corrientes.",
     paymentsTitle: "Formas de pago",
     paymentsText: "En la mayoría de nuestras zonas de entrega podés pagar al recibir tu pedido.",
     paymentsNote: "Al finalizar el pedido confirmamos la modalidad disponible según tu ubicación.",
