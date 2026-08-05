@@ -7,6 +7,7 @@ const state = {
   deliveryZones: Store.getDeliveryZones(),
   commerceContent: Store.getCommerceContent(),
   selectedDeliveryZone: null,
+  cartZone: null,
   currentProduct: null,
 };
 
@@ -283,7 +284,7 @@ function openProduct(code) {
           <p class="validation-message" id="variant-error" hidden></p>
           <div class="detail-actions">
             <button class="button button-outline" data-detail-add type="button">${ICON_CART}Agregar al carrito</button>
-            <button class="button button-whatsapp" data-detail-whatsapp type="button">${ICON_WA}Consultar por WhatsApp</button>
+            <button class="button button-whatsapp" data-detail-whatsapp type="button">${ICON_WA}${esc(state.commerceContent.detailBuy || "Iniciar compra")}</button>
           </div>
         </form>
       </div>
@@ -386,9 +387,44 @@ function renderCart() {
   $("#cart-empty").hidden = state.cart.length > 0;
   $("#cart-summary").hidden = state.cart.length === 0;
   $("#cart-total").textContent = money.format(total);
+  $("#cart-grand-total").textContent = money.format(total);
+  $("#cart-grand-total").dataset.parcial = hayAPedido ? "1" : "";
+}
+
+/* Zona de entrega dentro del carrito: reutiliza las localidades cargadas en el
+   panel. No calcula un costo (no lo hay publicado), informa si llegamos y en
+   qué condiciones, y eso viaja en el mensaje de WhatsApp. */
+function calcularEnvio(value) {
+  const contenedor = $("#cart-shipping-result");
+  const query = normalizeText(value);
+  if (!query) {
+    state.cartZone = null;
+    contenedor.className = "cart-shipping-result";
+    contenedor.innerHTML = `<span>${esc(state.commerceContent.cartShippingEmpty || "Calculalo para verlo")}</span>`;
+    return;
+  }
+  const numeric = query.replace(/\D/g, "");
+  const zone = state.deliveryZones.find((item) => {
+    if (numeric.length >= 3) return String(item.postalCode || "").replace(/\D/g, "") === numeric;
+    const locality = normalizeText(item.locality);
+    return locality === query || locality.includes(query);
+  });
+
+  state.cartZone = zone || { locality: value.trim(), desconocida: true };
+  if (!zone) {
+    contenedor.className = "cart-shipping-result sin-zona";
+    contenedor.innerHTML = `<strong>No encontramos esa zona</strong><span>Consultanos igual: te confirmamos el recorrido por WhatsApp.</span>`;
+    return;
+  }
+  contenedor.className = "cart-shipping-result con-zona";
+  contenedor.innerHTML = `
+    <strong>${esc(zone.locality)}${zone.postalCode ? ` · CP ${esc(zone.postalCode)}` : ""}</strong>
+    <span>${esc(zone.deliveryDays || "Frecuencia a confirmar")}</span>
+    <span>${esc(zone.paymentCondition || (zone.cashOnDelivery ? "Pago al recibir disponible" : "A confirmar"))}</span>`;
 }
 
 function openCart() {
+  mostrarPaso("cart");
   $("#drawer-backdrop").hidden = false;
   $("#cart-drawer").classList.add("open");
   $("#cart-drawer").setAttribute("aria-hidden", "false");
@@ -423,9 +459,8 @@ function productMessage(product, variant = null) {
   return `Hola, quiero consultar por ${product.name} (${product.code}).\nOpciones: ${options}\n${precio}`;
 }
 
-function buyCart() {
-  if (!state.cart.length) return;
-  const lines = state.cart.map((item) => {
+function cartLines() {
+  return state.cart.map((item) => {
     const product = state.products.find((candidate) => candidate.code === item.code);
     const options = [item.measure, item.hand, item.color].filter(Boolean).join(", ");
     const importe = esAPedido(item)
@@ -433,16 +468,90 @@ function buyCart() {
       : money.format((Number(item.price) || product.price) * item.quantity);
     return `- ${item.quantity} x ${product.name} [${product.code}]${options ? ` (${options})` : ""}: ${importe}`;
   });
-  const total = state.cart.reduce((sum, item) => {
+}
+
+function cartTotal() {
+  return state.cart.reduce((sum, item) => {
     if (esAPedido(item)) return sum;
     const product = state.products.find((candidate) => candidate.code === item.code);
     return sum + (Number(item.price) || product.price) * item.quantity;
   }, 0);
-  const hayAPedido = state.cart.some(esAPedido);
-  const subtotal = hayAPedido
+}
+
+/* Paso 2: con los datos cargados, el mensaje sale con el pedido completo para
+   que el negocio solo tenga que confirmarlo. */
+function enviarPedido(datos) {
+  const total = cartTotal();
+  const subtotal = state.cart.some(esAPedido)
     ? `Subtotal de lo publicado: ${money.format(total)} (falta cotizar lo que va a medida)`
-    : `Subtotal estimado: ${money.format(total)}`;
-  openWhatsApp(`Hola, quiero hacer este pedido:\n\n${lines.join("\n")}\n\n${subtotal}\nQuiero confirmar disponibilidad, entrega y forma de pago.`);
+    : `Subtotal: ${money.format(total)}`;
+
+  const entrega = datos.modo === "retiro"
+    ? "Retiro en el local"
+    : `Envío a domicilio\nLocalidad: ${datos.localidad}\nDirección: ${datos.direccion}`;
+
+  const bloques = [
+    "Hola, quiero hacer este pedido:",
+    "",
+    cartLines().join("\n"),
+    "",
+    subtotal,
+    "",
+    "MIS DATOS",
+    `Nombre: ${datos.nombre}`,
+    `Teléfono: ${datos.telefono}`,
+    `Entrega: ${entrega}`,
+  ];
+  if (datos.comentarios) bloques.push(`Comentarios: ${datos.comentarios}`);
+  bloques.push("", "Quedo a la espera de la confirmación.");
+
+  openWhatsApp(bloques.join("\n"));
+}
+
+/* ---------- Navegación entre los dos pasos del carrito ---------- */
+function mostrarPaso(paso) {
+  const enDatos = paso === "datos";
+  $("#step-cart").hidden = enDatos;
+  $("#step-datos").hidden = !enDatos;
+  $("#cart-back").hidden = !enDatos;
+  $("#drawer-title").textContent = enDatos
+    ? (state.commerceContent.checkoutTitle || "Tus datos")
+    : (state.commerceContent.cartTitle || "Carrito de compras");
+  $("#cart-drawer").scrollTop = 0;
+  if (enDatos) renderResumenPedido();
+}
+
+function renderResumenPedido() {
+  const total = cartTotal();
+  const unidades = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+  $("#checkout-resumen").innerHTML = `
+    <span>${unidades} ${unidades === 1 ? "producto" : "productos"}</span>
+    <strong>${money.format(total)}${state.cart.some(esAPedido) ? " + a cotizar" : ""}</strong>`;
+}
+
+function irADatos() {
+  if (!state.cart.length) return;
+  const form = $("#step-datos");
+  const guardados = Store.getBuyer();
+  Object.entries(guardados).forEach(([key, value]) => {
+    if (form.elements[key] && form.elements[key].type !== "radio") form.elements[key].value = value;
+  });
+  if (guardados.modo) {
+    const radio = [...form.elements.modo].find((r) => r.value === guardados.modo);
+    if (radio) radio.checked = true;
+  }
+  // Si ya calculó la zona en el carrito, la localidad viene puesta.
+  if (state.cartZone && !form.elements.localidad.value) form.elements.localidad.value = state.cartZone.locality;
+  aplicarModoEntrega();
+  mostrarPaso("datos");
+}
+
+function aplicarModoEntrega() {
+  const form = $("#step-datos");
+  const esRetiro = form.elements.modo.value === "retiro";
+  $("#campos-envio").hidden = esRetiro;
+  form.elements.localidad.required = !esRetiro;
+  form.elements.direccion.required = !esRetiro;
 }
 
 function showToast(message) {
@@ -507,7 +616,39 @@ $("#close-cart").addEventListener("click", closeCart);
 $("#continue-shopping").addEventListener("click", closeCart);
 $("#drawer-backdrop").addEventListener("click", closeCart);
 $("#product-backdrop").addEventListener("click", closeProduct);
-$("#buy-cart").addEventListener("click", buyCart);
+$("#go-checkout").addEventListener("click", irADatos);
+$("#cart-back").addEventListener("click", () => mostrarPaso("cart"));
+$("#back-to-cart").addEventListener("click", () => mostrarPaso("cart"));
+$("#step-datos").addEventListener("change", (event) => {
+  if (event.target.name === "modo") aplicarModoEntrega();
+});
+$("#step-datos").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.target;
+  const datos = Object.fromEntries(new FormData(form));
+  const error = $("#checkout-error");
+
+  const faltan = [];
+  if (!datos.nombre?.trim()) faltan.push("tu nombre");
+  if (!datos.telefono?.trim()) faltan.push("tu teléfono");
+  if (datos.modo === "envio") {
+    if (!datos.localidad?.trim()) faltan.push("la localidad");
+    if (!datos.direccion?.trim()) faltan.push("la dirección");
+  }
+  if (faltan.length) {
+    error.textContent = `Falta completar ${faltan.join(", ").replace(/, ([^,]*)$/, " y $1")}.`;
+    error.hidden = false;
+    return;
+  }
+  error.hidden = true;
+
+  Store.saveBuyer(datos);
+  enviarPedido(datos);
+});
+$("#cart-shipping-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  calcularEnvio($("#cart-postal").value);
+});
 $("#clear-cart").addEventListener("click", () => { state.cart = []; Store.saveCart(state.cart); renderCart(); });
 $("#locality-search-form").addEventListener("submit", (event) => {
   event.preventDefault();

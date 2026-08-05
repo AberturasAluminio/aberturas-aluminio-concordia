@@ -240,17 +240,46 @@
       </details>
 
       <details class="content-block">
-        <summary><strong>Carrito y búsquedas sin resultado</strong><span>Textos que aparecen según lo que hace el visitante</span></summary>
+        <summary><strong>Ficha de producto</strong><span>La ventana que se abre al tocar Comprar</span></summary>
         <div class="form-grid">
+          <label class="span-2">Botón que lleva a WhatsApp<input name="detailBuy"></label>
+        </div>
+      </details>
+
+      <details class="content-block">
+        <summary><strong>Carrito</strong><span>El panel lateral con el pedido</span></summary>
+        <div class="form-grid">
+          <label>Título del carrito<input name="cartTitle"></label>
+          <label>Etiqueta del subtotal<input name="cartSubtotal"></label>
+          <label>Título de zona de entrega<input name="cartShippingLabel"></label>
+          <label>Botón calcular<input name="cartShippingButton"></label>
+          <label>Zona sin calcular<input name="cartShippingEmpty"></label>
+          <label>Etiqueta del total<input name="cartTotalLabel"></label>
+          <label class="span-2">Aclaración del carrito<textarea name="cartNote" rows="2"></textarea></label>
+          <label>Botón iniciar compra<input name="cartBuy"></label>
+          <label>Botón vaciar carrito<input name="cartClear"></label>
           <label>Carrito vacío: título<input name="cartEmptyTitle"></label>
           <label>Carrito vacío: texto<input name="cartEmptyText"></label>
           <label>Botón seguir comprando<input name="cartContinue"></label>
-          <label>Etiqueta del subtotal<input name="cartSubtotal"></label>
-          <label class="span-2">Aclaración del carrito<textarea name="cartNote" rows="2"></textarea></label>
-          <label>Botón finalizar pedido<input name="cartBuy"></label>
-          <label>Botón vaciar carrito<input name="cartClear"></label>
-          <label>Sin resultados: título<input name="emptyTitle"></label>
-          <label>Sin resultados: texto<input name="emptyText"></label>
+        </div>
+      </details>
+
+      <details class="content-block">
+        <summary><strong>Datos del pedido</strong><span>El paso donde el visitante deja sus datos</span></summary>
+        <div class="form-grid">
+          <label>Título del paso<input name="checkoutTitle"></label>
+          <label>Etiqueta de la forma de entrega<input name="checkoutModoLabel"></label>
+          <label class="span-2">Texto de introducción<textarea name="checkoutIntro" rows="2"></textarea></label>
+          <label>Botón enviar pedido<input name="checkoutSend"></label>
+          <label>Botón volver al carrito<input name="checkoutBack"></label>
+        </div>
+      </details>
+
+      <details class="content-block">
+        <summary><strong>Búsquedas sin resultado</strong><span>Cuando el catálogo no encuentra nada</span></summary>
+        <div class="form-grid">
+          <label>Título<input name="emptyTitle"></label>
+          <label>Texto<input name="emptyText"></label>
         </div>
       </details>
       </form>

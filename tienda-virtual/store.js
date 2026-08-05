@@ -2,6 +2,7 @@
   const PRODUCT_KEY = "aac-store-products-v2";
   const SETTINGS_KEY = "aac-store-settings-v2";
   const CART_KEY = "aac-store-cart-v2";
+  const BUYER_KEY = "aac-store-buyer-v1";
   const DELIVERY_KEY = "aac-store-delivery-zones-v1";
   // v3: ahora el panel edita todos los textos de la web, no solo los de compra.
   const CONTENT_KEY = "aac-store-commerce-content-v3";
@@ -134,13 +135,26 @@
     emptyText: "Probá otra búsqueda o elegí una categoría diferente.",
 
     // Carrito
+    cartTitle: "Carrito de compras",
     cartEmptyTitle: "Tu carrito está vacío",
     cartEmptyText: "Agregá productos para preparar tu pedido.",
     cartContinue: "Seguir comprando",
-    cartSubtotal: "Subtotal estimado",
+    cartSubtotal: "Subtotal (sin envío)",
+    cartShippingLabel: "Zona de entrega",
+    cartShippingButton: "Calcular",
+    cartShippingEmpty: "Calculalo para verlo",
+    cartTotalLabel: "Total",
     cartNote: "La compra se confirma por WhatsApp luego de verificar stock, variantes y entrega.",
-    cartBuy: "Finalizar pedido por WhatsApp",
+    cartBuy: "Iniciar compra por WhatsApp",
     cartClear: "Vaciar carrito",
+    detailBuy: "Iniciar compra",
+
+    // Paso de datos antes de mandar el pedido
+    checkoutTitle: "Tus datos",
+    checkoutIntro: "Completá tus datos y se arma el pedido en WhatsApp. El negocio solo tiene que confirmarlo.",
+    checkoutModoLabel: "¿Cómo lo recibís?",
+    checkoutSend: "Enviar pedido por WhatsApp",
+    checkoutBack: "Volver al carrito",
 
     // Pie de página
     footerAbout: "Fabricación de aberturas de aluminio y herrería en Concordia, Entre Ríos.",
@@ -264,6 +278,21 @@
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
   }
 
+  /* Datos de quien compra: se recuerdan para no reescribirlos en cada pedido.
+     Quedan solo en este navegador; no se envían a ningún lado salvo en el
+     mensaje de WhatsApp que la persona decide mandar. */
+  function getBuyer() {
+    try {
+      return JSON.parse(localStorage.getItem(BUYER_KEY)) || {};
+    } catch {
+      return {};
+    }
+  }
+
+  function saveBuyer(buyer) {
+    localStorage.setItem(BUYER_KEY, JSON.stringify(buyer));
+  }
+
   function splitOptions(value) {
     if (Array.isArray(value)) return [...new Set(value.map(String).map((item) => item.trim()).filter(Boolean))];
     return [...new Set(String(value || "").split(/\s*[;|/]\s*|\s*,\s*/).map((item) => item.trim()).filter(Boolean))];
@@ -357,6 +386,8 @@
     saveCommerceContent,
     getCart,
     saveCart,
+    getBuyer,
+    saveBuyer,
     splitOptions,
     normalizeProduct,
     resetProducts: () => saveProducts(clone(defaults)),
