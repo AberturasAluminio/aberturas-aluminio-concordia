@@ -217,7 +217,6 @@ function productCard(product) {
           <strong>${money.format(product.price)}</strong>
         </div>
         <button class="button button-buy full" data-quick-buy="${esc(product.code)}" type="button">${ICON_CART}Comprar</button>
-        <button class="whatsapp-link" data-product-whatsapp="${esc(product.code)}" type="button">${ICON_WA}Consultar por WhatsApp</button>
       </div>
     </article>`;
 }
@@ -247,12 +246,18 @@ function selectOptions(label, name, values) {
   return `<label><span>${label}</span><select name="${name}" required><option value="">Seleccionar</option>${values.map((value) => `<option value="${esc(value)}">${esc(value)}</option>`).join("")}</select></label>`;
 }
 
+const MEDIDA_PERSONALIZADA = "__a-medida__";
+
 function measureOptions(product) {
   if (!product.variants.length) return "";
-  return `<label><span>Medida y precio</span><select name="measure" required><option value="">Seleccionar</option>${product.variants.map((variant) => `<option value="${esc(variant.measure)}">${esc(variant.measure)} — ${money.format(variant.price)}</option>`).join("")}</select></label>`;
+  return `<label><span>Medida y precio</span><select name="measure" required>
+      <option value="">Seleccionar</option>
+      ${product.variants.map((variant) => `<option value="${esc(variant.measure)}">${esc(variant.measure)} — ${money.format(variant.price)}</option>`).join("")}
+      <option value="${MEDIDA_PERSONALIZADA}">Necesito una medida a pedido</option>
+    </select></label>`;
 }
 
-function openProduct(code, intent = "view") {
+function openProduct(code) {
   const product = state.products.find((item) => item.code === code);
   if (!product) return;
   state.currentProduct = product;
@@ -270,10 +275,14 @@ function openProduct(code, intent = "view") {
             ${selectOptions("Mano", "hand", product.hands)}
             ${selectOptions("Color", "color", product.colors)}
           </div>
-          <p class="validation-message" id="variant-error" hidden>Seleccioná todas las opciones disponibles.</p>
+          <label class="custom-measure" id="custom-measure" hidden>
+            <span>¿Qué medidas necesitás?</span>
+            <input name="customMeasure" type="text" placeholder="Ej. 145 x 95 cm" autocomplete="off">
+            <small>El precio de una medida a pedido se confirma por WhatsApp.</small>
+          </label>
+          <p class="validation-message" id="variant-error" hidden></p>
           <div class="detail-actions">
-            <button class="button button-outline" data-detail-add type="button">Agregar al carrito</button>
-            <button class="button button-buy" data-detail-buy type="button">${ICON_CART}Comprar</button>
+            <button class="button button-outline" data-detail-add type="button">${ICON_CART}Agregar al carrito</button>
             <button class="button button-whatsapp" data-detail-whatsapp type="button">${ICON_WA}Consultar por WhatsApp</button>
           </div>
         </form>
@@ -283,7 +292,6 @@ function openProduct(code, intent = "view") {
   $("#product-modal").classList.add("open");
   $("#product-modal").setAttribute("aria-hidden", "false");
   document.body.classList.add("locked");
-  if (intent === "add" && !product.measures.length && !product.hands.length && !product.colors.length) addConfiguredProduct(false);
 }
 
 function closeProduct() {
@@ -294,21 +302,37 @@ function closeProduct() {
   unlockBody();
 }
 
+/* Solo se exige lo que el producto realmente ofrece. Antes se armaba una
+   lista con `largo && valor`: cuando el largo era 0 quedaba un 0 en la lista
+   y se leía como campo sin completar, así que los productos sin "mano" nunca
+   se podían agregar. */
 function selectedVariant() {
   const form = $("#variant-form");
-  if (!form || !state.currentProduct) return null;
+  const product = state.currentProduct;
+  if (!form || !product) return null;
   const values = Object.fromEntries(new FormData(form));
-  const required = [
-    state.currentProduct.measures.length && values.measure,
-    state.currentProduct.hands.length && values.hand,
-    state.currentProduct.colors.length && values.color,
-  ].filter((value) => value !== false);
-  if (required.some((value) => !value)) {
-    $("#variant-error").hidden = false;
+
+  const faltantes = [];
+  if (product.measures.length && !values.measure) faltantes.push("la medida");
+  if (product.hands.length && !values.hand) faltantes.push("la mano");
+  if (product.colors.length && !values.color) faltantes.push("el color");
+
+  const aMedida = values.measure === MEDIDA_PERSONALIZADA;
+  if (aMedida && !String(values.customMeasure || "").trim()) faltantes.push("las medidas que necesitás");
+
+  const error = $("#variant-error");
+  if (faltantes.length) {
+    error.textContent = `Falta elegir ${faltantes.join(", ").replace(/, ([^,]*)$/, " y $1")}.`;
+    error.hidden = false;
     return null;
   }
-  const selected = state.currentProduct.variants.find((variant) => variant.measure === values.measure);
-  return { measure: values.measure || "", hand: values.hand || "", color: values.color || "", price: selected?.price ?? state.currentProduct.price };
+  error.hidden = true;
+
+  if (aMedida) {
+    return { measure: `A medida: ${String(values.customMeasure).trim()}`, hand: values.hand || "", color: values.color || "", price: null };
+  }
+  const selected = product.variants.find((variant) => variant.measure === values.measure);
+  return { measure: values.measure || "", hand: values.hand || "", color: values.color || "", price: selected?.price ?? product.price };
 }
 
 function cartKey(code, variant) {
@@ -330,10 +354,15 @@ function addConfiguredProduct(openDrawerAfter = false) {
   return true;
 }
 
+/* Un ítem a pedido no tiene precio hasta que el negocio lo cotiza: se muestra
+   "A confirmar" y no se suma al subtotal. */
+const esAPedido = (item) => item.price === null;
+
 function renderCart() {
   state.cart = state.cart.filter((item) => state.products.some((product) => product.code === item.code));
   const units = state.cart.reduce((sum, item) => sum + item.quantity, 0);
   const total = state.cart.reduce((sum, item) => {
+    if (esAPedido(item)) return sum;
     const product = state.products.find((candidate) => candidate.code === item.code);
     return sum + (Number(item.price) || product?.price || 0) * item.quantity;
   }, 0);
@@ -341,14 +370,19 @@ function renderCart() {
   $("#cart-items").innerHTML = state.cart.map((item) => {
     const product = state.products.find((candidate) => candidate.code === item.code);
     const options = [item.measure, item.hand, item.color].filter(Boolean).join(" · ");
+    const importe = esAPedido(item)
+      ? '<em class="a-pedido">A confirmar</em>'
+      : money.format((Number(item.price) || product.price) * item.quantity);
     return `<article class="cart-item">
       <div class="cart-thumb">${productVisual(product, true)}</div>
       <div><h4>${esc(product.name)}</h4><p>${esc(options || product.code)}</p>
         <div class="quantity"><button data-cart-change="${esc(item.key)}" data-delta="-1" type="button">−</button><span>${item.quantity}</span><button data-cart-change="${esc(item.key)}" data-delta="1" type="button">+</button></div>
       </div>
-      <div class="cart-item-side"><strong>${money.format((Number(item.price) || product.price) * item.quantity)}</strong><button data-cart-remove="${esc(item.key)}" type="button">Quitar</button></div>
+      <div class="cart-item-side"><strong>${importe}</strong><button data-cart-remove="${esc(item.key)}" type="button">Quitar</button></div>
     </article>`;
   }).join("");
+  const hayAPedido = state.cart.some(esAPedido);
+  $("#cart-total").dataset.parcial = hayAPedido ? "1" : "";
   $("#cart-empty").hidden = state.cart.length > 0;
   $("#cart-summary").hidden = state.cart.length === 0;
   $("#cart-total").textContent = money.format(total);
@@ -379,8 +413,14 @@ function openWhatsApp(message) {
 }
 
 function productMessage(product, variant = null) {
-  const options = variant ? [variant.measure, variant.hand, variant.color].filter(Boolean).join(", ") : "Quiero conocer las opciones disponibles";
-  return `Hola, quiero consultar por ${product.name} (${product.code}).\nOpciones: ${options}\nPrecio publicado: ${money.format(variant?.price ?? product.price)}.`;
+  if (!variant) {
+    return `Hola, quiero consultar por ${product.name} (${product.code}).\nQuiero conocer las opciones disponibles.`;
+  }
+  const options = [variant.measure, variant.hand, variant.color].filter(Boolean).join(", ");
+  const precio = variant.price === null
+    ? "Es una medida a pedido: necesito que me pasen el precio."
+    : `Precio publicado: ${money.format(variant.price)}.`;
+  return `Hola, quiero consultar por ${product.name} (${product.code}).\nOpciones: ${options}\n${precio}`;
 }
 
 function buyCart() {
@@ -388,13 +428,21 @@ function buyCart() {
   const lines = state.cart.map((item) => {
     const product = state.products.find((candidate) => candidate.code === item.code);
     const options = [item.measure, item.hand, item.color].filter(Boolean).join(", ");
-    return `- ${item.quantity} x ${product.name} [${product.code}]${options ? ` (${options})` : ""}: ${money.format((Number(item.price) || product.price) * item.quantity)}`;
+    const importe = esAPedido(item)
+      ? "a confirmar"
+      : money.format((Number(item.price) || product.price) * item.quantity);
+    return `- ${item.quantity} x ${product.name} [${product.code}]${options ? ` (${options})` : ""}: ${importe}`;
   });
   const total = state.cart.reduce((sum, item) => {
+    if (esAPedido(item)) return sum;
     const product = state.products.find((candidate) => candidate.code === item.code);
     return sum + (Number(item.price) || product.price) * item.quantity;
   }, 0);
-  openWhatsApp(`Hola, quiero comprar estos productos:\n\n${lines.join("\n")}\n\nSubtotal estimado: ${money.format(total)}\nQuiero confirmar stock, entrega y forma de pago.`);
+  const hayAPedido = state.cart.some(esAPedido);
+  const subtotal = hayAPedido
+    ? `Subtotal de lo publicado: ${money.format(total)} (falta cotizar lo que va a medida)`
+    : `Subtotal estimado: ${money.format(total)}`;
+  openWhatsApp(`Hola, quiero hacer este pedido:\n\n${lines.join("\n")}\n\n${subtotal}\nQuiero confirmar disponibilidad, entrega y forma de pago.`);
 }
 
 function showToast(message) {
@@ -414,20 +462,13 @@ function setCategory(category) {
 document.addEventListener("click", (event) => {
   const category = event.target.closest("[data-category]");
   const view = event.target.closest("[data-view]");
-  const quick = event.target.closest("[data-quick-add]");
   const quickBuy = event.target.closest("[data-quick-buy]");
-  const productWhatsapp = event.target.closest("[data-product-whatsapp]");
   const galleryImage = event.target.closest("[data-gallery-image]");
   const locality = event.target.closest("[data-locality]");
   const zoneWhatsapp = event.target.closest("[data-zone-whatsapp]");
   if (category) setCategory(category.dataset.category);
   if (view) openProduct(view.dataset.view);
-  if (quick) openProduct(quick.dataset.quickAdd, "add");
-  if (quickBuy) openProduct(quickBuy.dataset.quickBuy, "buy");
-  if (productWhatsapp) {
-    const product = state.products.find((item) => item.code === productWhatsapp.dataset.productWhatsapp);
-    if (product) openWhatsApp(productMessage(product));
-  }
+  if (quickBuy) openProduct(quickBuy.dataset.quickBuy);
   if (galleryImage) {
     $("#gallery-main-image").src = galleryImage.dataset.galleryImage;
     document.querySelectorAll("[data-gallery-image]").forEach((button) => button.classList.toggle("active", button === galleryImage));
@@ -439,7 +480,6 @@ document.addEventListener("click", (event) => {
   if (zoneWhatsapp) openWhatsApp(`Hola, quiero consultar por entrega en ${zoneWhatsapp.dataset.zoneWhatsapp}. ¿Cuál es la próxima fecha, el costo y la forma de pago disponible?`);
   if (event.target.closest("[data-close-product]")) closeProduct();
   if (event.target.closest("[data-detail-add]")) addConfiguredProduct(false);
-  if (event.target.closest("[data-detail-buy]")) addConfiguredProduct(true);
   if (event.target.closest("[data-detail-whatsapp]")) {
     const variant = selectedVariant();
     if (variant) openWhatsApp(productMessage(state.currentProduct, variant));
@@ -447,10 +487,16 @@ document.addEventListener("click", (event) => {
   if (event.target.closest("[data-general-whatsapp]")) openWhatsApp("Hola, quisiera recibir asesoramiento sobre sus productos.");
 });
 document.addEventListener("change", (event) => {
-  if (event.target.matches("#variant-form [name=measure]") && state.currentProduct) {
-    const variant = state.currentProduct.variants.find((item) => item.measure === event.target.value);
-    if (variant) $(".detail-price").textContent = money.format(variant.price);
+  if (!event.target.matches("#variant-form [name=measure]") || !state.currentProduct) return;
+  const aMedida = event.target.value === MEDIDA_PERSONALIZADA;
+  $("#custom-measure").hidden = !aMedida;
+  if (aMedida) {
+    $(".detail-price").textContent = "A confirmar";
+    $("#custom-measure input").focus();
+    return;
   }
+  const variant = state.currentProduct.variants.find((item) => item.measure === event.target.value);
+  $(".detail-price").textContent = money.format(variant ? variant.price : state.currentProduct.price);
 });
 
 $("#product-search").addEventListener("input", (event) => { state.search = event.target.value; renderProducts(); });
