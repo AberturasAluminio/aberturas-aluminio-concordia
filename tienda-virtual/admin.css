@@ -165,7 +165,58 @@ tr:hover td { background: var(--surface); }
   font-size: 12px;
 }
 .settings-form { max-width: 720px; }
-.content-form { max-width: 920px; }
+
+/* ---------- Textos de la web: un bloque plegable por sección ---------- */
+.content-form { max-width: 980px; }
+.content-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.content-block {
+  margin-bottom: 10px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+.content-block[open] { border-color: var(--blue); }
+.content-block summary {
+  padding: 15px 18px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.content-block summary::-webkit-details-marker { display: none; }
+.content-block summary::after {
+  content: "+";
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-size: 17px;
+  line-height: 1;
+}
+.content-block[open] summary::after { content: "–"; color: var(--blue); }
+.content-block summary strong { color: var(--ink); font-size: 14px; }
+.content-block summary span { color: var(--ink-soft); font-size: 12.5px; }
+.content-block summary:hover strong { color: var(--blue); }
+.content-block .form-grid { padding: 0 18px 18px; border-top: 1px solid var(--line-soft); }
+.content-block .form-grid label { margin-top: 14px; }
+
+/* ---------- Estrella de destacado en la tabla ---------- */
+.star {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: var(--line);
+  background: none;
+  border: 0;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: color .16s, background .16s;
+}
+.star svg { width: 21px; height: 21px; fill: currentColor; }
+.star:hover { color: var(--orange); background: var(--orange-tint); }
+.star.on { color: var(--orange); }
 
 /* ---------- Modales ---------- */
 .admin-modal-backdrop { position: fixed; inset: 0; z-index: 49; background: rgba(0, 20, 60, .55); }

@@ -38,6 +38,7 @@
       <button data-tab="excel" type="button">Importar / Exportar Excel</button>
       <button data-tab="delivery" type="button">Localidades y entregas</button>
       <button data-tab="content" type="button">Textos comerciales</button>
+      <button data-tab="backup" type="button">Copia de seguridad</button>
       <button data-tab="settings" type="button">Configuración</button>
     </nav>
 
@@ -48,7 +49,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Imagen</th><th>Código</th><th>Producto</th><th>Categoría</th><th>Opciones</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Imagen</th><th>Código</th><th>Producto</th><th>Categoría</th><th>Opciones</th><th>Precio</th><th>Estado</th><th>Destacado</th><th>Acciones</th></tr></thead>
           <tbody id="product-table"></tbody>
         </table>
       </div>
@@ -112,20 +113,163 @@
     </section>
 
     <section class="admin-panel" data-panel="content">
-      <form class="admin-card content-form" id="commerce-content-form">
-        <p class="overline">Contenido público</p><h2>Textos de compra, pagos y envíos</h2>
-        <div class="form-grid">
-          <label class="span-2">Título de la sección<input name="sectionTitle" required></label>
-          <label class="span-2">Introducción<textarea name="sectionIntro" rows="2"></textarea></label>
-          <label>Título: precios<input name="pricesTitle"></label>
-          <label>Título: zonas de entrega<input name="deliveryTitle"></label>
-          <label class="span-2">Texto de precios<textarea name="pricesText" rows="3"></textarea></label>
-          <label class="span-2">Aclaración de precios<textarea name="pricesNote" rows="2"></textarea></label>
-          <label class="span-2">Pasos de compra<input name="purchaseFlow"><small>Separar cada paso con `|`.</small></label>
-          <label class="span-2">Texto de zonas de entrega<textarea name="deliveryText" rows="2"></textarea></label>
+      <form class="content-form" id="commerce-content-form">
+        <div class="panel-section-heading">
+          <div><p class="overline">Contenido público</p><h2>Textos de la web</h2><p>Cada bloque corresponde a una parte de la página. Abrí el que quieras cambiar.</p></div>
+          <div class="content-actions">
+            <a class="button button-outline button-small" href="index.html" target="_blank" rel="noopener">Ver la tienda</a>
+            <button class="button button-outline button-small" id="reset-content" type="button">Restaurar textos originales</button>
+            <button class="button button-primary button-small" type="submit">Guardar textos</button>
+          </div>
         </div>
-        <button class="button button-primary" type="submit">Guardar textos</button>
+
+      <details class="content-block">
+        <summary><strong>Barra superior</strong><span>La franja fina de arriba de todo</span></summary>
+        <div class="form-grid">
+          <label class="span-2">Texto de la barra<input name="topbar"></label>
+        </div>
+      </details>
+      <details class="content-block">
+        <summary><strong>Banner principal</strong><span>Lo primero que se ve al entrar</span></summary>
+        <div class="form-grid">
+          <label>Título grande<input name="heroTitle"></label>
+          <label>Subtítulo<input name="heroSubtitle"></label>
+          <label class="span-2">Frase descriptiva<input name="heroLead"></label>
+          <label>Ícono 1<input name="heroBadge1"></label>
+          <label>Ícono 2<input name="heroBadge2"></label>
+          <label>Ícono 3<input name="heroBadge3"></label>
+          <label>Texto del botón<input name="heroCta"></label>
+        </div>
+      </details>
+      <details class="content-block">
+        <summary><strong>Franja de beneficios</strong><span>Los cuatro puntos debajo del banner</span></summary>
+        <div class="form-grid">
+          <label>Beneficio 1: título<input name="benefit1Title"></label>
+          <label>Beneficio 1: detalle<input name="benefit1Text"></label>
+          <label>Beneficio 2: título<input name="benefit2Title"></label>
+          <label>Beneficio 2: detalle<input name="benefit2Text"></label>
+          <label>Beneficio 3: título<input name="benefit3Title"></label>
+          <label>Beneficio 3: detalle<input name="benefit3Text"></label>
+          <label>Beneficio 4: título<input name="benefit4Title"></label>
+          <label>Beneficio 4: detalle<input name="benefit4Text"></label>
+        </div>
+      </details>
+      <details class="content-block">
+        <summary><strong>Destacados</strong><span>Encabezado de la sección de productos destacados</span></summary>
+        <div class="form-grid">
+          <label>Título<input name="featuredTitle"></label>
+          <label>Descripción<input name="featuredText"></label>
+        </div>
+      </details>
+      <details class="content-block">
+        <summary><strong>Accesos por categoría</strong><span>Los tres recuadros con foto</span></summary>
+        <div class="form-grid">
+          <label>Recuadro grande<input name="banner1Label"></label>
+          <label>Recuadro superior<input name="banner2Label"></label>
+          <label>Recuadro inferior<input name="banner3Label"></label>
+        </div>
+      </details>
+      <details class="content-block">
+        <summary><strong>Catálogo</strong><span>Encabezado del listado de productos</span></summary>
+        <div class="form-grid">
+          <label>Título<input name="catalogTitle"></label>
+          <label class="span-2">Descripción<input name="catalogText"></label>
+        </div>
+      </details>
+      <details class="content-block">
+        <summary><strong>Cómo comprar</strong><span>Los cuatro pasos y la nota de precios</span></summary>
+        <div class="form-grid">
+          <label>Título<input name="sectionTitle"></label>
+          <label class="span-2">Introducción<textarea name="sectionIntro" rows="2"></textarea></label>
+          <label class="span-2">Pasos<input name="purchaseFlow"><small>Separar cada paso con una barra |</small></label>
+          <label>Título de la nota<input name="pricesTitle"></label>
+          <label class="span-2">Texto de la nota<textarea name="pricesNote" rows="2"></textarea></label>
+        </div>
+      </details>
+      <details class="content-block">
+        <summary><strong>Zonas de entrega</strong><span>El buscador de localidades y su listado</span></summary>
+        <div class="form-grid">
+          <label>Título<input name="deliveryTitle"></label>
+          <label class="span-2">Descripción<textarea name="deliveryText" rows="2"></textarea></label>
+          <label class="span-2">Texto sobre el buscador<input name="deliverySearchLabel"></label>
+          <label class="span-2">Ayuda debajo del buscador<textarea name="pricesText" rows="2"></textarea></label>
+          <label>Título del listado<input name="deliveryListTitle"></label>
+        </div>
+      </details>
+      <details class="content-block">
+        <summary><strong>Bloque institucional</strong><span>La franja naranja con el mensaje del negocio</span></summary>
+        <div class="form-grid">
+          <label class="span-2">Título<input name="instTitle"></label>
+          <label class="span-2">Texto<textarea name="instText" rows="3"></textarea></label>
+          <label>Texto del botón<input name="instCta"></label>
+        </div>
+      </details>
+      <details class="content-block">
+        <summary><strong>Contacto</strong><span>La sección con el mapa y los datos del local</span></summary>
+        <div class="form-grid">
+          <label>Antetítulo<input name="contactOverline"></label>
+          <label class="span-2">Título<input name="contactTitle"></label>
+          <label class="span-2">Texto<textarea name="contactText" rows="2"></textarea></label>
+          <label>Texto del botón<input name="contactCta"></label>
+          <label>Botón sobre el mapa<input name="mapCta"></label>
+          <label>Etiqueta: local<input name="contactLocalLabel"></label>
+          <label>Etiqueta: atención<input name="contactHoursLabel"></label>
+          <label>Horario principal<input name="contactHours"></label>
+          <label>Horario secundario<input name="contactHoursExtra"></label>
+        </div>
+      </details>
+      <details class="content-block">
+        <summary><strong>Pie de página</strong><span>Las columnas del final</span></summary>
+        <div class="form-grid">
+          <label class="span-2">Descripción del negocio<textarea name="footerAbout" rows="2"></textarea></label>
+          <label>Título columna 1<input name="footerCol1Title"></label>
+          <label>Título columna 2<input name="footerCol2Title"></label>
+          <label>Título columna 3<input name="footerCol3Title"></label>
+          <label>Zona<input name="footerRegion"></label>
+          <label>Crédito<input name="footerCredit"></label>
+          <label>Horario en el pie<input name="footerHours"></label>
+          <label>Enlace 1<input name="footerLink1"></label>
+          <label>Enlace 2<input name="footerLink2"></label>
+          <label>Enlace 3<input name="footerLink3"></label>
+          <label>Enlace 4<input name="footerLink4"></label>
+          <label>Enlace 5<input name="footerLink5"></label>
+          <label>Enlace 6<input name="footerLink6"></label>
+          <label>Enlace 7<input name="footerLink7"></label>
+          <label>Enlace 8<input name="footerLink8"></label>
+        </div>
+      </details>
+
+      <details class="content-block">
+        <summary><strong>Carrito y búsquedas sin resultado</strong><span>Textos que aparecen según lo que hace el visitante</span></summary>
+        <div class="form-grid">
+          <label>Carrito vacío: título<input name="cartEmptyTitle"></label>
+          <label>Carrito vacío: texto<input name="cartEmptyText"></label>
+          <label>Botón seguir comprando<input name="cartContinue"></label>
+          <label>Etiqueta del subtotal<input name="cartSubtotal"></label>
+          <label class="span-2">Aclaración del carrito<textarea name="cartNote" rows="2"></textarea></label>
+          <label>Botón finalizar pedido<input name="cartBuy"></label>
+          <label>Botón vaciar carrito<input name="cartClear"></label>
+          <label>Sin resultados: título<input name="emptyTitle"></label>
+          <label>Sin resultados: texto<input name="emptyText"></label>
+        </div>
+      </details>
       </form>
+    </section>
+
+    <section class="admin-panel" data-panel="backup">
+      <div class="admin-grid two">
+        <div class="admin-card">
+          <p class="overline">Guardar</p><h2>Descargar copia</h2>
+          <p>Genera un archivo con los productos, las localidades, los textos y la configuración. Sirve para pasar todo a otra computadora o para volver atrás si algo sale mal.</p>
+          <button class="button button-primary full" id="export-backup" type="button">Descargar copia de seguridad</button>
+        </div>
+        <div class="admin-card">
+          <p class="overline">Restaurar</p><h2>Cargar copia</h2>
+          <p>Reemplaza el contenido actual por el del archivo. Se muestra un resumen antes de aplicar.</p>
+          <label class="file-drop" for="backup-file">Elegí el archivo de copia<input id="backup-file" type="file" accept="application/json,.json"></label>
+          <button class="button button-outline full" id="import-backup" type="button">Restaurar desde el archivo</button>
+        </div>
+      </div>
     </section>
 
     <section class="admin-panel" data-panel="settings">
@@ -159,7 +303,8 @@
         <label>Colores<input name="colors" placeholder="Blanco / Negro"></label>
         <label class="span-2">URL de imagen<input name="image" type="url" placeholder="https://..."></label>
         <label class="span-2">O cargar una imagen<input id="image-file" type="file" accept="image/*"><small>Se optimiza y guarda en este navegador.</small></label>
-        <label class="checkbox span-2"><input name="active" type="checkbox" checked> Producto visible en la tienda</label>
+        <label class="checkbox"><input name="active" type="checkbox" checked> Producto visible en la tienda</label>
+        <label class="checkbox"><input name="featured" type="checkbox"> Mostrar en destacados</label>
       </div>
       <div class="modal-actions"><button class="button button-outline" data-close-modal type="button">Cancelar</button><button class="button button-primary" type="submit">Guardar producto</button></div>
     </form>

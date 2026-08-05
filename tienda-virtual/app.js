@@ -41,28 +41,26 @@ function normalizeText(value) {
 
 function applyCommerceContent() {
   const content = state.commerceContent;
-  const bindings = {
-    "#commerce-section-title": content.sectionTitle,
-    "#commerce-section-intro": content.sectionIntro,
-    "#prices-info-title": content.pricesTitle,
-    "#prices-info-text": content.pricesText,
-    "#prices-info-note": content.pricesNote,
-    "#delivery-info-title": content.deliveryTitle,
-    "#delivery-info-text": content.deliveryText,
-  };
-  Object.entries(bindings).forEach(([selector, value]) => {
-    const element = $(selector);
-    if (element) element.textContent = value;
+  // Cada nodo con data-content toma su texto del panel. Para sumar un texto
+  // editable alcanza con marcarlo en el HTML y darle su valor por defecto.
+  document.querySelectorAll("[data-content]").forEach((element) => {
+    const value = content[element.dataset.content];
+    if (value !== undefined) element.textContent = value;
   });
   // Los pasos salen del texto editable del panel, separados por "|".
   const flow = String(content.purchaseFlow || "").split("|").map((item) => item.trim()).filter(Boolean);
   $("#purchase-flow").innerHTML = flow
     .map((item, index) => `<li><span class="step-n">${index + 1}</span><span class="step-text">${esc(item)}</span></li>`)
     .join("");
-  const phone = Store.getSettings().whatsapp;
+  const settings = Store.getSettings();
+  const phone = settings.whatsapp;
   const formattedPhone = phone === "5493454938829" ? "+54 9 345 493 8829" : `+${phone}`;
   document.querySelectorAll("[data-store-phone]").forEach((element) => {
-    element.textContent = element.tagName === "BUTTON" ? `WhatsApp: ${formattedPhone}` : formattedPhone;
+    element.textContent = formattedPhone;
+  });
+  // La dirección se edita en Configuración, no en los textos.
+  document.querySelectorAll("[data-store-address]").forEach((element) => {
+    element.textContent = settings.address || "";
   });
   $("#locality-suggestions").innerHTML = state.deliveryZones.filter((zone) => zone.available).slice(0, 5)
     .map((zone) => `<button data-locality="${esc(zone.locality)}" type="button">${esc(zone.locality)}</button>`).join("");
@@ -231,11 +229,17 @@ function renderProducts() {
   $("#empty-state").hidden = visible.length > 0;
 }
 
+/* Los destacados se eligen desde el panel. Si no hay ninguno marcado, se
+   muestran los primeros publicados para que la sección nunca quede vacía. */
 function renderFeatured() {
   const grid = $("#featured-grid");
   if (!grid) return;
-  const featured = state.products.filter((product) => product.active).slice(0, 4);
+  const publicados = state.products.filter((product) => product.active);
+  const elegidos = publicados.filter((product) => product.featured);
+  const featured = (elegidos.length ? elegidos : publicados).slice(0, 8);
   grid.innerHTML = featured.map(productCard).join("");
+  const seccion = grid.closest("section");
+  if (seccion) seccion.hidden = featured.length === 0;
 }
 
 function selectOptions(label, name, values) {

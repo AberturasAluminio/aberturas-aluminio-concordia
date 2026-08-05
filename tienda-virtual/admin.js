@@ -35,7 +35,7 @@ function renderAll() {
   $("#admin-stats").innerHTML = `
     <article class="stat-card"><small>Productos</small><strong>${adminState.products.length}</strong></article>
     <article class="stat-card"><small>Publicados</small><strong>${active}</strong></article>
-    <article class="stat-card"><small>Categorías con productos</small><strong>${new Set(adminState.products.map((product) => product.category)).size}</strong></article>
+    <article class="stat-card"><small>En destacados</small><strong>${adminState.products.filter((product) => product.featured && product.active).length}</strong></article>
     <article class="stat-card"><small>Sin imagen propia</small><strong>${adminState.products.filter((product) => !product.image).length}</strong></article>`;
   renderTable();
   renderDeliveryZones();
@@ -79,6 +79,13 @@ function renderTable() {
       <td><small>${product.measures.length} medidas · ${product.hands.length} manos · ${product.colors.length} colores</small></td>
       <td class="price-cell">${money.format(product.price)}</td>
       <td><span class="status ${product.active ? "active" : "inactive"}">${product.active ? "Publicado" : "Oculto"}</span></td>
+      <td>
+        <button class="star ${product.featured ? "on" : ""}" data-featured="${esc(product.code)}" type="button"
+          title="${product.featured ? "Quitar de destacados" : "Mostrar en destacados"}"
+          aria-pressed="${product.featured}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.6 5.3 5.8.85-4.2 4.1 1 5.75L12 16.9l-5.2 2.7 1-5.75-4.2-4.1 5.8-.85z"/></svg>
+        </button>
+      </td>
       <td><div class="table-actions"><button data-edit="${esc(product.code)}" type="button">Editar</button><button data-toggle="${esc(product.code)}" type="button">${product.active ? "Ocultar" : "Publicar"}</button><button class="delete" data-delete="${esc(product.code)}" type="button">Eliminar</button></div></td>
     </tr>`).join("");
 }
@@ -106,6 +113,7 @@ function openEditor(code = "") {
   form.elements.colors.value = product?.colors.join(" / ") || "";
   form.elements.image.value = product?.image?.startsWith("http") ? product.image : "";
   form.elements.active.checked = product?.active !== false;
+  form.elements.featured.checked = product?.featured === true;
   renderVariantRows(product?.variants || [{ measure: "", price: "" }]);
   openModal("#product-editor");
 }
@@ -314,6 +322,15 @@ $("#product-table").addEventListener("click", (event) => {
   const edit = event.target.closest("[data-edit]");
   const toggle = event.target.closest("[data-toggle]");
   const remove = event.target.closest("[data-delete]");
+  const featured = event.target.closest("[data-featured]");
+  if (featured) {
+    const product = adminState.products.find((item) => item.code === featured.dataset.featured);
+    if (product) {
+      product.featured = !product.featured;
+      persist();
+      showToast(product.featured ? "Agregado a destacados" : "Quitado de destacados");
+    }
+  }
   if (edit) openEditor(edit.dataset.edit);
   if (toggle) {
     const product = adminState.products.find((item) => item.code === toggle.dataset.toggle);
@@ -366,6 +383,7 @@ $("#product-form").addEventListener("submit", (event) => {
     variants,
     images: data.image ? [data.image] : adminState.editingImages,
     active: event.target.elements.active.checked,
+    featured: event.target.elements.featured.checked,
   });
   const duplicate = adminState.products.find((item) => item.code === product.code && item.code !== data.originalCode);
   if (duplicate) return showToast("Ya existe otro producto con ese código");
@@ -442,11 +460,73 @@ $("#commerce-content-form").addEventListener("submit", (event) => {
   event.preventDefault();
   adminState.commerceContent = Object.fromEntries(new FormData(event.target));
   Store.saveCommerceContent(adminState.commerceContent);
-  showToast("Textos comerciales guardados");
+  showToast("Textos guardados. Recargá la tienda para verlos.");
 });
 
+$("#reset-content").addEventListener("click", () => {
+  if (!confirm("¿Restaurar todos los textos originales? Se pierden los cambios que hayas hecho.")) return;
+  Store.saveCommerceContent(Store.defaultCommerceContent);
+  adminState.commerceContent = Store.getCommerceContent();
+  cargarTextosEnFormulario();
+  showToast("Textos restaurados");
+});
+
+/* ---------- Copia de seguridad ---------- */
+$("#export-backup").addEventListener("click", () => {
+  const datos = Store.exportBackup();
+  const fecha = new Date().toISOString().slice(0, 10);
+  const url = URL.createObjectURL(new Blob([JSON.stringify(datos, null, 2)], { type: "application/json" }));
+  const enlace = Object.assign(document.createElement("a"), { href: url, download: `copia-tienda-${fecha}.json` });
+  enlace.click();
+  URL.revokeObjectURL(url);
+  showToast("Copia descargada");
+});
+
+$("#import-backup").addEventListener("click", () => {
+  const archivo = $("#backup-file").files[0];
+  if (!archivo) return showToast("Elegí primero el archivo de copia");
+  const lector = new FileReader();
+  lector.onload = () => {
+    let datos;
+    try {
+      datos = JSON.parse(lector.result);
+    } catch {
+      return showToast("El archivo no es un JSON válido");
+    }
+    const fecha = datos.fecha ? new Date(datos.fecha).toLocaleString("es-AR") : "sin fecha";
+    if (!confirm(`Se va a reemplazar el contenido actual por la copia del ${fecha}. ¿Continuar?`)) return;
+    try {
+      const r = Store.importBackup(datos);
+      adminState.products = Store.getProducts();
+      adminState.deliveryZones = Store.getDeliveryZones();
+      adminState.commerceContent = Store.getCommerceContent();
+      cargarTextosEnFormulario();
+      cargarConfiguracionEnFormulario();
+      renderAll();
+      $("#backup-file").value = "";
+      showToast(`Restaurado: ${r.productos} productos y ${r.zonas} localidades`);
+    } catch (error) {
+      showToast(error.message || "No se pudo restaurar la copia");
+    }
+  };
+  lector.readAsText(archivo);
+});
+
+function cargarTextosEnFormulario() {
+  const form = $("#commerce-content-form");
+  Object.entries(adminState.commerceContent).forEach(([key, value]) => {
+    if (form.elements[key]) form.elements[key].value = value;
+  });
+}
+
+function cargarConfiguracionEnFormulario() {
+  const form = $("#settings-form");
+  Object.entries(Store.getSettings()).forEach(([key, value]) => {
+    if (form.elements[key]) form.elements[key].value = value;
+  });
+}
+
 fillCategorySelects();
-const settings = Store.getSettings();
-Object.entries(settings).forEach(([key, value]) => { if ($("#settings-form").elements[key]) $("#settings-form").elements[key].value = value; });
-Object.entries(adminState.commerceContent).forEach(([key, value]) => { if ($("#commerce-content-form").elements[key]) $("#commerce-content-form").elements[key].value = value; });
+cargarConfiguracionEnFormulario();
+cargarTextosEnFormulario();
 renderAll();

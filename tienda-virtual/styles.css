@@ -298,7 +298,7 @@ h2 { font-size: clamp(20px, 2.1vw, 26px); }
   line-height: 1;
   text-transform: uppercase;
 }
-.hero-card h1 span {
+.hero-card h1 [data-content="heroSubtitle"] {
   font-size: clamp(19px, 2.1vw, 28px);
   font-weight: 700;
   letter-spacing: -.02em;
