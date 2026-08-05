@@ -8,7 +8,7 @@
   const DELIVERY_REVISION_KEY = "aac-store-delivery-revision";
   const DELIVERY_REVISION = 1;
   const CATALOG_REVISION_KEY = "aac-store-catalog-revision";
-  const CATALOG_REVISION = 2;
+  const CATALOG_REVISION = 3;
 
   const categories = [
     "Ventanas de aluminio",
@@ -161,10 +161,21 @@
       let products = Array.isArray(saved) ? saved.map(normalizeProduct) : clone(defaults).map(normalizeProduct);
       const revision = Number(localStorage.getItem(CATALOG_REVISION_KEY) || 0);
       if (revision < CATALOG_REVISION) {
+        /* Se mira lo guardado ANTES de tocar nada: si el catálogo viene de una
+           versión sin destacados, no hay ninguna elección que respetar y se
+           aplican los de fábrica. Si el negocio ya eligió, no se toca. */
+        const sinElecciones = Array.isArray(saved) && !saved.some((product) => product.featured);
+
         const updatedWindow = normalizeProduct(defaults.find((product) => product.code === "VA-001"));
         const index = products.findIndex((product) => product.code === updatedWindow.code);
-        if (index >= 0) products[index] = updatedWindow;
+        // Al reponer la ficha no se pisa lo que el negocio haya elegido.
+        if (index >= 0) products[index] = { ...updatedWindow, featured: sinElecciones ? updatedWindow.featured : products[index].featured };
         else products.unshift(updatedWindow);
+
+        if (sinElecciones) {
+          const deFabrica = new Set(defaults.filter((product) => product.featured).map((product) => product.code));
+          products = products.map((product) => ({ ...product, featured: deFabrica.has(product.code) }));
+        }
         localStorage.setItem(PRODUCT_KEY, JSON.stringify(products));
         localStorage.setItem(CATALOG_REVISION_KEY, String(CATALOG_REVISION));
       }
