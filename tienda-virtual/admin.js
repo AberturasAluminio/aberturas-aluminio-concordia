@@ -482,6 +482,14 @@ $("#export-backup").addEventListener("click", () => {
   showToast("Copia descargada");
 });
 
+$("#reset-products").addEventListener("click", () => {
+  if (!confirm("¿Restaurar el catálogo de ejemplo? Se pierden los productos y los destacados que hayas cargado.")) return;
+  Store.resetProducts();
+  adminState.products = Store.getProducts();
+  renderAll();
+  showToast("Catálogo de ejemplo restaurado");
+});
+
 $("#import-backup").addEventListener("click", () => {
   const archivo = $("#backup-file").files[0];
   if (!archivo) return showToast("Elegí primero el archivo de copia");
