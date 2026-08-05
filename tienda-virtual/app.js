@@ -355,6 +355,26 @@ function addConfiguredProduct(openDrawerAfter = false) {
   return true;
 }
 
+/* "Iniciar compra" desde la ficha: suma el producto y salta directo a los
+   datos, sin detenerse en el carrito. El pedido se arma igual que si viniera
+   de ahí, así que si ya había algo cargado también viaja. */
+function iniciarCompraDirecta() {
+  const variant = selectedVariant();
+  if (!variant) return;
+  const key = cartKey(state.currentProduct.code, variant);
+  const existing = state.cart.find((item) => item.key === key);
+  if (existing) existing.quantity += 1;
+  else state.cart.push({ key, code: state.currentProduct.code, ...variant, quantity: 1 });
+  Store.saveCart(state.cart);
+  renderCart();
+  closeProduct();
+  $("#drawer-backdrop").hidden = false;
+  $("#cart-drawer").classList.add("open");
+  $("#cart-drawer").setAttribute("aria-hidden", "false");
+  document.body.classList.add("locked");
+  irADatos();
+}
+
 /* Un ítem a pedido no tiene precio hasta que el negocio lo cotiza: se muestra
    "A confirmar" y no se suma al subtotal. */
 const esAPedido = (item) => item.price === null;
@@ -448,17 +468,6 @@ function openWhatsApp(message) {
   window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
 }
 
-function productMessage(product, variant = null) {
-  if (!variant) {
-    return `Hola, quiero consultar por ${product.name} (${product.code}).\nQuiero conocer las opciones disponibles.`;
-  }
-  const options = [variant.measure, variant.hand, variant.color].filter(Boolean).join(", ");
-  const precio = variant.price === null
-    ? "Es una medida a pedido: necesito que me pasen el precio."
-    : `Precio publicado: ${money.format(variant.price)}.`;
-  return `Hola, quiero consultar por ${product.name} (${product.code}).\nOpciones: ${options}\n${precio}`;
-}
-
 function cartLines() {
   return state.cart.map((item) => {
     const product = state.products.find((candidate) => candidate.code === item.code);
@@ -536,6 +545,8 @@ function irADatos() {
   Object.entries(guardados).forEach(([key, value]) => {
     if (form.elements[key] && form.elements[key].type !== "radio") form.elements[key].value = value;
   });
+  form.elements.comentarios.value = "";   // son de cada pedido, no se arrastran
+  $("#checkout-error").hidden = true;
   if (guardados.modo) {
     const radio = [...form.elements.modo].find((r) => r.value === guardados.modo);
     if (radio) radio.checked = true;
@@ -589,10 +600,7 @@ document.addEventListener("click", (event) => {
   if (zoneWhatsapp) openWhatsApp(`Hola, quiero consultar por entrega en ${zoneWhatsapp.dataset.zoneWhatsapp}. ¿Cuál es la próxima fecha, el costo y la forma de pago disponible?`);
   if (event.target.closest("[data-close-product]")) closeProduct();
   if (event.target.closest("[data-detail-add]")) addConfiguredProduct(false);
-  if (event.target.closest("[data-detail-whatsapp]")) {
-    const variant = selectedVariant();
-    if (variant) openWhatsApp(productMessage(state.currentProduct, variant));
-  }
+  if (event.target.closest("[data-detail-whatsapp]")) iniciarCompraDirecta();
   if (event.target.closest("[data-general-whatsapp]")) openWhatsApp("Hola, quisiera recibir asesoramiento sobre sus productos.");
 });
 document.addEventListener("change", (event) => {
@@ -642,7 +650,9 @@ $("#step-datos").addEventListener("submit", (event) => {
   }
   error.hidden = true;
 
-  Store.saveBuyer(datos);
+  // Los comentarios son de cada pedido: no se recuerdan para el siguiente.
+  const { comentarios, ...aRecordar } = datos;
+  Store.saveBuyer(aRecordar);
   enviarPedido(datos);
 });
 $("#cart-shipping-form").addEventListener("submit", (event) => {
