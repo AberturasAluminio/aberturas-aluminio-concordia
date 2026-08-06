@@ -210,23 +210,42 @@ function filteredProducts() {
   return visible;
 }
 
+/* La medida que marca el "desde": la más barata según lo que se cobra, que
+   con oferta no es la de menor precio de lista. */
+function varianteMasBarata(product) {
+  if (!product.variants.length) return null;
+  return product.variants.reduce((menor, variante) =>
+    Store.precioEfectivo(variante) < Store.precioEfectivo(menor) ? variante : menor);
+}
+
+/* Con oferta se muestra lo que se paga y al lado el precio anterior tachado.
+   Sin oferta, el precio y nada más. */
+function precioHTML(variant) {
+  if (!variant) return "";
+  if (!Store.enOferta(variant)) return money.format(variant.price);
+  return `${money.format(variant.promoPrice)} <s class="precio-anterior">${money.format(variant.price)}</s>`;
+}
+
 /* Ficha compacta: la imagen manda, el detalle completo vive en el modal.
    El precio se muestra "desde" porque cada medida tiene el suyo. */
 function productCard(product) {
   const medidas = product.variants.length;
+  const barata = varianteMasBarata(product);
+  const hayOferta = product.variants.some(Store.enOferta);
   return `
     <article class="product-card">
       <button class="product-media" data-view="${esc(product.code)}" type="button" aria-label="Ver ${esc(product.name)}">
         ${productVisual(product)}
         <span class="product-code">${esc(product.code)}</span>
+        ${hayOferta ? '<span class="product-sale">Oferta</span>' : ""}
       </button>
       <div class="product-body">
         <span class="product-category">${esc(product.category)}</span>
         <h3>${esc(product.name)}</h3>
         <p class="product-measures">${medidas} medida${medidas === 1 ? "" : "s"} disponible${medidas === 1 ? "" : "s"}${product.colors.length ? ` · ${esc(product.colors.join(" / "))}` : ""}</p>
-        <div class="product-price">
+        <div class="product-price${hayOferta ? " on-sale" : ""}">
           <small>Desde</small>
-          <strong>${money.format(product.price)}</strong>
+          <strong>${precioHTML(barata)}</strong>
         </div>
         <button class="button button-buy full" data-quick-buy="${esc(product.code)}" type="button">${ICON_CART}Comprar</button>
       </div>
@@ -341,7 +360,13 @@ function measureOptions(product) {
   if (!product.variants.length) return "";
   return `<label><span>Medida y precio</span><select name="measure" required>
       <option value="">Seleccionar</option>
-      ${product.variants.map((variant) => `<option value="${esc(variant.measure)}">${esc(variant.measure)} — ${money.format(variant.price)}</option>`).join("")}
+      ${product.variants.map((variant) => {
+        // Dentro de un <option> no entra HTML: la oferta se dice con texto.
+        const precio = Store.enOferta(variant)
+          ? `${money.format(variant.promoPrice)} (antes ${money.format(variant.price)})`
+          : money.format(variant.price);
+        return `<option value="${esc(variant.measure)}">${esc(variant.measure)} — ${precio}</option>`;
+      }).join("")}
       <option value="${MEDIDA_PERSONALIZADA}">Necesito una medida a pedido</option>
     </select></label>`;
 }
@@ -357,7 +382,7 @@ function openProduct(code) {
         <span class="product-category">${esc(product.category)} · ${esc(product.code)}</span>
         <h2>${esc(product.name)}</h2>
         <p>${esc(product.detail)}</p>
-        <div class="detail-price">${money.format(product.price)}</div>
+        <div class="detail-price">${precioHTML(varianteMasBarata(product)) || money.format(product.price)}</div>
         <form id="variant-form">
           <div class="variant-grid">
             ${measureOptions(product)}
@@ -467,14 +492,25 @@ function iniciarCompraDirecta() {
    "A confirmar" y no se suma al subtotal. */
 const esAPedido = (item) => item.price === null;
 
+/* La medida del catálogo que corresponde a un ítem del carrito. Se busca por
+   id, y por medida cuando el carrito viene de antes de que las medidas
+   tuvieran uno propio. */
+function varianteDe(item) {
+  const product = state.products.find((candidate) => candidate.code === item.code);
+  if (!product) return null;
+  return product.variants.find((candidate) => candidate.id && candidate.id === item.id)
+    || product.variants.find((candidate) => candidate.measure === item.measure)
+    || null;
+}
+
 /* El precio se vuelve a leer del catálogo en cada render en vez de confiar en
    el que se guardó al agregar: si el negocio actualiza la lista, quien tenga
    el carrito abierto ve el valor nuevo y el pedido sale con ese. */
 function precioActual(item) {
   if (esAPedido(item)) return null;
-  const product = state.products.find((candidate) => candidate.code === item.code);
-  const variant = product?.variants.find((candidate) => candidate.measure === item.measure);
-  if (variant) return variant.price;
+  const variant = varianteDe(item);
+  // El precio que se cobra es el de oferta cuando la hay.
+  if (variant) return Store.precioEfectivo(variant);
   // Si esa medida ya no está en el catálogo vale más lo guardado que el
   // "desde" del producto, que es el mínimo de las medidas que quedaron.
   const guardado = Number(item.price);
@@ -592,7 +628,11 @@ function cartTotal() {
 function registrarPedido(datos, total) {
   const items = state.cart.map((item) => {
     const product = state.products.find((candidate) => candidate.code === item.code);
+    const variant = varianteDe(item);
     return {
+      // Con la medida identificada, el precio y el costo los pone la base
+      // desde el catálogo: acá no se manda ningún importe.
+      variantId: variant ? variant.id : null,
       code: item.code,
       name: product ? product.name : item.code,
       opciones: [item.measure, item.hand, item.color].filter(Boolean).join(", "),
@@ -600,7 +640,7 @@ function registrarPedido(datos, total) {
       precio: precioActual(item),
     };
   });
-  Store.addOrder({
+  return Store.addOrder({
     cliente: {
       nombre: datos.nombre.trim(),
       telefono: datos.telefono.trim(),
@@ -748,7 +788,10 @@ document.addEventListener("change", (event) => {
     return;
   }
   const variant = state.currentProduct.variants.find((item) => item.measure === event.target.value);
-  $(".detail-price").textContent = money.format(variant ? variant.price : state.currentProduct.price);
+  // innerHTML porque el precio anterior tachado va marcado, no como texto.
+  $(".detail-price").innerHTML = variant
+    ? precioHTML(variant)
+    : money.format(state.currentProduct.price);
 });
 
 on("#product-search", "input", (event) => { state.search = event.target.value; renderProducts(); });
@@ -863,12 +906,22 @@ function applyUrlFilters() {
 }
 
 $("#year").textContent = new Date().getFullYear();
-applyUrlFilters();
-applyCommerceContent();
-renderCategories();
-renderProducts();
-renderFeatured();
-renderFaqs();
-renderReviews();
-renderCart();
-updateNavArrows();
+
+/* Los datos ahora viven en la base, así que hay que esperarlos antes de
+   dibujar. `state` se vuelve a llenar acá: cuando se declaró arriba, `init()`
+   todavía no había traído nada. Los listeners no dependen de datos y ya
+   quedaron atados durante la carga del archivo. */
+Store.init().then(() => {
+  state.products = Store.getProducts();
+  state.deliveryZones = Store.getDeliveryZones();
+  state.commerceContent = Store.getCommerceContent();
+  applyUrlFilters();
+  applyCommerceContent();
+  renderCategories();
+  renderProducts();
+  renderFeatured();
+  renderFaqs();
+  renderReviews();
+  renderCart();
+  updateNavArrows();
+});

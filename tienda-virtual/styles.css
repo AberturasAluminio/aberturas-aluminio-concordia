@@ -506,6 +506,33 @@ h2 { font-size: clamp(20px, 2.1vw, 26px); }
 .product-price { margin: 12px 0 13px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
 .product-price small { display: block; color: var(--ink-soft); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
 .product-price strong { display: block; margin-top: 2px; color: var(--blue); font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+
+/* Ofertas. El precio que se paga manda en tamaño y color; el anterior queda
+   tachado, más chico y apagado, para que se lea la diferencia de un vistazo.
+   El naranja de marca se usa acá porque es el único lugar de la tarjeta que
+   compite en atención con el azul. */
+.product-price.on-sale strong { color: var(--orange-dark); }
+.precio-anterior {
+  margin-left: 7px;
+  color: var(--ink-soft);
+  font-size: .72em;
+  font-weight: 500;
+  text-decoration-thickness: 1.5px;
+}
+.product-sale {
+  /* A la derecha: arriba a la izquierda ya está el código del producto. */
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 9px;
+  border-radius: 100px;
+  background: var(--orange);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
 .product-body .whatsapp-link {
   margin-top: 7px;
   padding: 8px;

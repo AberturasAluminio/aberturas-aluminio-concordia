@@ -101,18 +101,24 @@ tr:hover td { background: var(--surface); }
 .status.inactive { color: #7a5410; background: #f7edd9; }
 .table-actions { display: flex; gap: 5px; }
 .table-actions button {
-  padding: 6px 10px;
+  /* 40px es la misma regla táctil que se aplicó en la tienda: por debajo de
+     eso el botón se falla con el dedo. */
+  min-height: 40px;
+  padding: 6px 12px;
   color: var(--ink-mid);
   background: var(--white);
   border: 1px solid var(--line);
   cursor: pointer;
   font-size: 11px;
   font-weight: 600;
+  white-space: nowrap;
   transition: color .16s, border-color .16s;
 }
 .table-actions button:hover { color: var(--blue); border-color: var(--blue); }
 .table-actions .delete { color: var(--danger); }
 .table-actions .delete:hover { border-color: var(--danger); }
+.table-actions .cobrar { color: #0f6b3f; border-color: #bfe0cd; background: #f2faf5; }
+.table-actions .cobrar:hover { color: #0f6b3f; border-color: #0f6b3f; }
 
 /* ---------- Tarjetas y formularios ---------- */
 .admin-grid.two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
@@ -220,7 +226,7 @@ tr:hover td { background: var(--surface); }
 .aviso-local svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--blue); }
 
 .estado-select {
-  min-height: 34px;
+  min-height: 40px;
   padding: 4px 8px;
   width: auto;
   min-width: 118px;
@@ -254,6 +260,149 @@ tr:hover td { background: var(--surface); }
 .order-total { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); text-align: right; font-size: 14px; }
 .order-total strong { color: var(--blue); font-size: 19px; }
 
+/* ---------- Cobros y saldos ---------- */
+.stat-debt { border-top-color: var(--danger); }
+.stat-debt strong { color: var(--danger); font-size: 21px; }
+
+.orders-summary { margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 12px; }
+.orders-chip {
+  padding: 12px 18px;
+  display: grid;
+  gap: 2px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--blue);
+}
+.orders-chip small { color: var(--ink-soft); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.orders-chip strong { color: var(--blue); font-size: 20px; font-weight: 700; }
+.orders-chip em { color: var(--ink-soft); font-size: 11.5px; font-style: normal; }
+.orders-chip.debt { border-left-color: var(--danger); }
+.orders-chip.debt strong { color: var(--danger); }
+
+.orders-filters { display: flex; align-items: center; gap: 10px; }
+.chip-check {
+  min-height: 40px;
+  padding: 0 14px;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  color: var(--ink-mid);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  white-space: nowrap;
+}
+.chip-check:has(input:checked) { color: var(--danger); border-color: var(--danger); background: #fdf2f1; }
+.chip-check input { width: auto; min-height: auto; margin: 0; }
+.orders-filters select { min-height: 40px; width: auto; min-width: 150px; font-size: 12px; }
+
+.pago-badge {
+  padding: 4px 9px;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pago-sin-cobrar { color: #8f2320; background: #fae4e3; }
+.pago-parcial { color: #7a5410; background: #f7edd9; }
+.pago-pagado { color: #0f6b3f; background: #e2f2e9; }
+.saldo-debe { color: var(--danger); }
+.canal-local { color: var(--ink-soft); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+
+.order-money { margin: 14px 0 6px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.order-money span { padding: 12px 14px; display: grid; gap: 3px; background: var(--surface); border: 1px solid var(--line); }
+.order-money small { color: var(--ink-soft); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.order-money strong { color: var(--blue); font-size: 18px; }
+.order-money .debt { background: #fdf2f1; border-color: #eec4c2; }
+.order-money .debt strong { color: var(--danger); }
+
+.order-items-sum td { padding-top: 12px; border-top: 1px solid var(--line-soft); color: var(--ink-soft); font-size: 12px; }
+.order-margin { margin: 10px 0 0; color: var(--ink-soft); font-size: 12.5px; }
+.order-margin strong { color: var(--ink); }
+.order-margin.sin-costo { color: #7a5410; }
+.order-pagos th { background: none; border-bottom: 1px solid var(--line-soft); padding: 8px 10px 8px 0; }
+.order-pagos td { padding: 9px 10px 9px 0; }
+.order-pagos .delete {
+  min-height: 34px;
+  padding: 4px 10px;
+  color: var(--danger);
+  background: var(--white);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+.order-pagos .delete:hover { border-color: var(--danger); }
+
+.order-flete { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.order-flete label { margin: 0 !important; }
+.order-flete input { min-height: 40px; width: 150px; }
+
+.payment-context { margin: 16px 0 4px; padding: 12px 14px; background: var(--blue-tint); font-size: 13px; }
+.payment-net { margin: 10px 0 0; color: #0f6b3f; font-size: 13px; }
+.input-small { width: 100px !important; min-height: 40px; }
+
+/* ---------- Venta del local ---------- */
+#local-item-rows { display: grid; gap: 8px; }
+.local-item-head,
+.local-item-row { display: grid; grid-template-columns: 2fr 1.2fr .7fr 1fr auto; gap: 8px; }
+.local-item-head {
+  margin-bottom: 6px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.local-item-row input, .local-item-row select { min-height: 40px; width: 100%; }
+.local-item-row button {
+  width: 40px;
+  color: var(--ink-soft);
+  background: var(--white);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  font-size: 16px;
+}
+.local-item-row button:hover { color: var(--danger); border-color: var(--danger); }
+.local-total { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--line); text-align: right; font-size: 14px; }
+.local-total strong { color: var(--blue); font-size: 19px; }
+
+/* ---------- Resumen ---------- */
+.dash-range { margin: 0 !important; }
+.dash-range select { min-height: 40px; min-width: 170px; }
+.dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.dash-card { padding: 18px 20px; display: grid; gap: 5px; background: var(--white); border: 1px solid var(--line); border-top: 3px solid var(--blue); }
+.dash-card small { color: var(--ink-soft); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.dash-card strong { color: var(--blue); font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+.dash-card em { color: var(--ink-soft); font-size: 11.5px; font-style: normal; }
+.dash-card em.up { color: #0f6b3f; font-weight: 600; }
+.dash-card em.down { color: var(--danger); font-weight: 600; }
+.dash-tables { margin-top: 20px; }
+.dash-tables .table-wrap { margin-top: 12px; }
+/* Sin esto la tabla de adentro le impone su ancho de contenido a la tarjeta y
+   la saca del grid en pantallas chicas: el mismo caso que el carril de
+   categorías de la tienda. */
+.dash-tables .admin-card { min-width: 0; }
+.dash-alert {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  background: #fdf6e7;
+  border: 1px solid #f0dcb0;
+  border-left: 3px solid var(--orange);
+  color: var(--ink-mid);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.dash-alert[hidden] { display: none; }
+.dash-alert strong { color: var(--ink); }
+.dash-alert em { font-style: normal; font-weight: 600; }
+.sin-dato { color: var(--ink-soft); font-weight: 400; }
+
 /* ---------- Preguntas frecuentes y reseñas ---------- */
 .panel-count { margin: 0 0 12px; color: var(--ink-soft); font-size: 12px; font-weight: 600; text-align: right; }
 
@@ -274,8 +423,8 @@ tr:hover td { background: var(--surface); }
 
 /* ---------- Estrella de destacado en la tabla ---------- */
 .star {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   display: grid;
   place-items: center;
@@ -339,7 +488,8 @@ tr:hover td { background: var(--surface); }
   text-transform: uppercase;
 }
 .variant-editor-heading button {
-  padding: 7px 12px;
+  min-height: 40px;
+  padding: 7px 14px;
   color: var(--white);
   background: var(--blue);
   border: 0;
@@ -350,7 +500,22 @@ tr:hover td { background: var(--surface); }
 }
 .variant-editor-heading button:hover { background: var(--blue-deep); }
 #variant-rows { display: grid; gap: 8px; }
-.variant-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; }
+.variant-help { margin: 0 0 10px; font-size: 12px; line-height: 1.45; color: var(--ink-soft); }
+.variant-head,
+.variant-row { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr .75fr auto; gap: 8px; }
+.variant-head {
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.variant-row input { min-height: 40px; width: 100%; }
+/* `contents` disuelve la etiqueta para que el input sea celda directa del
+   grid y las columnas coincidan con el encabezado. */
+.variant-field { display: contents; }
+.variant-field > span { display: none; }
 .variant-row button, .faq-item-row button {
   width: 40px;
   color: var(--ink-soft);
@@ -379,7 +544,118 @@ tr:hover td { background: var(--surface); }
 .preview-row-create td { background: #f2faf5; }
 .preview-row-update td { background: #f3f8fd; }
 
+/* ---------- Ingreso al panel ---------- */
+.login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--blue-tint);
+  overflow-y: auto;
+}
+.login-screen[hidden] { display: none; }
+
+.login-card {
+  width: min(100%, 400px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 30px 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--white);
+  box-shadow: 0 18px 40px rgba(0, 27, 82, .12);
+}
+.login-logo { width: 180px; height: auto; margin: 0 auto 4px; }
+.login-card h1 { margin: 0; font-size: 20px; text-align: center; color: var(--blue-ink); }
+.login-lead { margin: 0 0 4px; font-size: 14px; text-align: center; color: var(--ink-soft); }
+
+.login-card .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-mid);
+}
+.login-card .field input {
+  min-height: 46px;
+  padding: 0 13px;
+  /* 16px a propósito: por debajo de eso el navegador del teléfono hace zoom
+     solo al enfocar el campo. */
+  font: inherit;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--white);
+}
+.login-card .field input:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+  border-color: var(--blue);
+}
+.login-card button { min-height: 46px; margin-top: 4px; }
+.login-card button[disabled] { opacity: .6; cursor: progress; }
+
+.login-error {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--danger);
+  border: 1px solid #eec4c2;
+  border-radius: var(--r-sm);
+  background: #fae4e3;
+}
+.login-error[hidden] { display: none; }
+
+.admin-header-actions { display: flex; gap: 10px; align-items: center; }
+
 @media (max-width: 850px) {
+  /* Cinco columnas no entran: se apilan de a dos y cada campo muestra su
+     etiqueta, que en pantalla grande la cubría el encabezado. */
+  .variant-head { display: none; }
+  .variant-row {
+    grid-template-columns: 1fr 1fr;
+    padding: 12px;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+  }
+  .variant-field { display: flex; flex-direction: column; gap: 4px; }
+  .variant-field > span {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .variant-row > .variant-field:first-child { grid-column: 1 / -1; }
+  .variant-row > button[data-remove-variant] { grid-column: 1 / -1; justify-self: end; min-width: 44px; min-height: 40px; }
+
+  /* Lo mismo que las medidas: cinco columnas no entran en un teléfono. */
+  .local-item-head { display: none; }
+  .local-item-row {
+    grid-template-columns: 1fr 1fr;
+    padding: 12px;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+  }
+  .local-item-row > .variant-field:first-child { grid-column: 1 / -1; }
+  .local-item-row > button { grid-column: 1 / -1; justify-self: end; min-width: 44px; min-height: 40px; }
+
+  .dash-grid { grid-template-columns: repeat(2, 1fr); }
+  .order-money { grid-template-columns: 1fr; }
+  .orders-filters { flex-wrap: wrap; }
+  .orders-filters select { flex: 1 1 auto; }
+  .delivery-toolbar { grid-template-columns: 1fr; }
+  .order-flete input { width: 100%; }
+
   .admin-brand-label { display: none !important; }
   .admin-header { padding-inline: 18px; }
   .admin-header .brand-logo { width: 150px; }

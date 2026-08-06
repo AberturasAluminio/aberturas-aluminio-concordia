@@ -10,31 +10,54 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="admin.css">
-  <script src="delivery-zones-data.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="store.js" defer></script>
   <script src="xlsx-utils.js" defer></script>
   <script src="admin.js" defer></script>
 </head>
 <body class="admin-body">
-  <header class="admin-header">
+  <!-- Arranca visible: si el JavaScript falla o la sesión no es válida, lo
+       que queda a la vista es el login, nunca el panel. -->
+  <div class="login-screen" id="login-screen">
+    <form class="login-card" id="login-form" autocomplete="on">
+      <img class="login-logo" src="assets/logo-color.png" alt="Aberturas Aluminio Concordia">
+      <h1>Panel de administración</h1>
+      <p class="login-lead">Entrá con la cuenta del negocio.</p>
+      <label class="field">Correo
+        <input type="email" name="email" autocomplete="username" required>
+      </label>
+      <label class="field">Contraseña
+        <input type="password" name="password" autocomplete="current-password" required>
+      </label>
+      <p class="login-error" id="login-error" role="alert" hidden></p>
+      <button class="button button-primary" id="login-submit" type="submit">Entrar</button>
+    </form>
+  </div>
+
+  <header class="admin-header" hidden>
     <div class="brand">
       <img class="brand-logo" src="assets/logo-color.png" alt="Aberturas Aluminio Concordia">
       <span class="admin-brand-label"><strong>ADMINISTRACIÓN</strong><small>TIENDA VIRTUAL</small></span>
     </div>
-    <a class="button button-outline button-small" href="index.html">Ver tienda</a>
+    <div class="admin-header-actions">
+      <a class="button button-outline button-small" href="index.html">Ver tienda</a>
+      <button class="button button-outline button-small" id="logout" type="button">Salir</button>
+    </div>
   </header>
 
-  <main class="admin-shell">
+  <main class="admin-shell" hidden>
     <section class="admin-title">
-      <div><p class="overline">Panel de productos</p><h1>Administrar catálogo</h1><p>Los cambios se guardan en este navegador y se reflejan inmediatamente en la tienda local.</p></div>
+      <div><p class="overline">Panel de administración</p><h1>Tienda y ventas</h1><p>Los cambios se guardan en la base y los ve todo el que entre a la tienda.</p></div>
       <button class="button button-primary" id="new-product" type="button">+ Nuevo producto</button>
     </section>
 
     <section class="stats" id="admin-stats"></section>
 
     <nav class="admin-tabs" aria-label="Secciones de administración">
-      <button class="active" data-tab="products" type="button">Productos</button>
-      <button data-tab="orders" type="button">Pedidos</button>
+      <button class="active" data-tab="dashboard" type="button">Resumen</button>
+      <button data-tab="products" type="button">Productos</button>
+      <button data-tab="orders" type="button">Pedidos y cobros</button>
+      <button data-tab="payments" type="button">Medios de pago</button>
       <button data-tab="prices" type="button">Actualización de precios</button>
       <button data-tab="excel" type="button">Importar / Exportar Excel</button>
       <button data-tab="delivery" type="button">Localidades y entregas</button>
@@ -45,7 +68,45 @@
       <button data-tab="settings" type="button">Configuración</button>
     </nav>
 
-    <section class="admin-panel active" data-panel="products">
+    <section class="admin-panel active" data-panel="dashboard">
+      <div class="panel-section-heading">
+        <div>
+          <p class="overline">Cómo viene el negocio</p><h2 id="dash-title">Resumen del mes</h2>
+          <p>Se calcula con los pedidos cargados. "Comprometido" es lo vendido; "entrado" es la plata que ya cobraste.</p>
+        </div>
+        <label class="dash-range">Período
+          <select id="dash-period">
+            <option value="mes">Este mes</option>
+            <option value="anterior">Mes anterior</option>
+            <option value="anio">Este año</option>
+            <option value="todo">Todo</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="dash-alert" id="dash-cost-alert" hidden></div>
+
+      <div class="dash-grid" id="dash-cards"></div>
+
+      <div class="admin-grid two dash-tables">
+        <article class="admin-card">
+          <p class="overline">Cobranza</p><h2>Entró por cada medio</h2>
+          <div class="table-wrap">
+            <table><thead><tr><th>Medio</th><th>Cobros</th><th>Bruto</th><th>Comisión</th><th>Neto</th></tr></thead>
+            <tbody id="dash-methods"></tbody></table>
+          </div>
+        </article>
+        <article class="admin-card">
+          <p class="overline">Lo que más se vende</p><h2>Top 5 productos</h2>
+          <div class="table-wrap">
+            <table><thead><tr><th>Producto</th><th>Unidades</th><th>Vendido</th><th>Ganancia</th></tr></thead>
+            <tbody id="dash-top"></tbody></table>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="admin-panel" data-panel="products">
       <div class="panel-toolbar">
         <input id="admin-search" type="search" placeholder="Buscar por código, nombre o categoría">
         <select id="admin-category"><option value="">Todas las categorías</option></select>
@@ -61,28 +122,57 @@
     <section class="admin-panel" data-panel="orders">
       <div class="panel-section-heading">
         <div>
-          <p class="overline">Registro</p><h2>Pedidos recibidos</h2>
-          <p>Cada pedido que se envía por WhatsApp queda guardado acá con los datos de quien compra.</p>
+          <p class="overline">Registro</p><h2>Pedidos y cobros</h2>
+          <p>Los pedidos de la tienda entran solos. Las ventas del mostrador se cargan con el botón.</p>
         </div>
-        <button class="button button-outline" id="export-orders" type="button">Exportar a Excel</button>
+        <div class="content-actions">
+          <button class="button button-outline" id="export-orders" type="button">Exportar a Excel</button>
+          <button class="button button-primary" id="new-local-order" type="button">+ Venta del local</button>
+        </div>
       </div>
+      <div class="orders-summary" id="orders-summary"></div>
       <div class="panel-toolbar delivery-toolbar">
         <input id="orders-search" type="search" placeholder="Buscar por nombre, teléfono, localidad o número de pedido">
+        <div class="orders-filters">
+          <label class="chip-check"><input id="orders-only-debt" type="checkbox"> Me deben</label>
+          <select id="orders-filter-state">
+            <option value="">Toda la entrega</option>
+          </select>
+        </div>
         <span id="orders-count"></span>
-      </div>
-      <div class="aviso-local">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r=".7" fill="currentColor"/></svg>
-        <span>Los pedidos se guardan en este navegador. Al conectar la base de datos van a llegar los de todos los visitantes, desde cualquier dispositivo.</span>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Contacto</th><th>Entrega</th><th>Productos</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Cobrado</th><th>Saldo</th><th>Pago</th><th>Entrega</th><th>Acciones</th></tr></thead>
           <tbody id="orders-table"></tbody>
         </table>
       </div>
       <div class="orders-empty" id="orders-empty" hidden>
         <strong>Todavía no hay pedidos</strong>
-        <p>Cuando alguien complete el formulario y envíe el pedido por WhatsApp, va a aparecer en esta lista.</p>
+        <p>Cuando alguien complete el formulario y envíe el pedido por WhatsApp, va a aparecer en esta lista. Las ventas del mostrador se cargan con "+ Venta del local".</p>
+      </div>
+    </section>
+
+    <section class="admin-panel" data-panel="payments">
+      <div class="panel-section-heading">
+        <div>
+          <p class="overline">Cobranza</p><h2>Medios de pago y comisiones</h2>
+          <p>La comisión se congela en cada cobro: cambiarla acá no toca lo que ya cobraste.</p>
+        </div>
+        <div class="content-actions">
+          <button class="button button-outline" id="new-payment-method" type="button">+ Agregar medio</button>
+          <button class="button button-primary" id="save-payment-methods" type="button">Guardar cambios</button>
+        </div>
+      </div>
+      <div class="aviso-local">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r=".7" fill="currentColor"/></svg>
+        <span>Un medio que ya no usás se desactiva, no se borra: los cobros viejos guardan a qué medio se hicieron y borrarlo perdería ese historial.</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Medio de pago</th><th>Comisión %</th><th>De cada $100.000 te quedan</th><th>Activo</th></tr></thead>
+          <tbody id="payment-methods-table"></tbody>
+        </table>
       </div>
     </section>
 
@@ -120,9 +210,34 @@
         </article>
       </div>
       <div class="excel-help">
-        <strong>Columnas admitidas</strong>
-        <code>Código | Categoría | Nombre | Detalle | Medida | Mano | Color | Precio | Imagen</code>
-        <p>También se admite la columna combinada <code>Mano / Color</code>. Separá múltiples opciones con `/` o `;`.</p>
+        <strong>Columnas admitidas del catálogo</strong>
+        <code>Código | Categoría | Nombre | Detalle | Medida | Mano | Color | Costo | Precio | Oferta | Stock | Imagen</code>
+        <p>Obligatorias: <code>Código</code>, <code>Categoría</code>, <code>Nombre</code>, <code>Precio</code>. También se admite la columna combinada <code>Mano / Color</code>; separá múltiples opciones con `/` o `;`. Una columna que no esté en el archivo <strong>no se toca</strong>: si tu planilla no trae Costo, los costos cargados se conservan.</p>
+      </div>
+
+      <div class="panel-section-heading" style="margin-top: 34px">
+        <div>
+          <p class="overline">Carga histórica</p><h2>Importar pedidos viejos</h2>
+          <p>Para volcar de una vez las ventas que ya tenés anotadas en tu planilla.</p>
+        </div>
+      </div>
+      <div class="admin-grid two">
+        <article class="admin-card">
+          <p class="overline">Una sola vez</p><h2>Subir la planilla de ventas</h2>
+          <p>Cada fila es un producto vendido. Varias filas con el mismo número en la columna <code>Pedido</code> se juntan en una sola venta.</p>
+          <label class="file-drop">Seleccionar archivo `.xlsx`<input id="orders-excel-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+          <button class="button button-primary full" id="preview-orders-import" type="button">Mostrar vista previa</button>
+        </article>
+        <article class="admin-card">
+          <p class="overline">Descarga</p><h2>Plantilla de pedidos</h2>
+          <p>Bajala, pegá tus ventas siguiendo las columnas y volvé a subirla.</p>
+          <button class="button button-outline full" id="download-orders-template" type="button">Descargar plantilla de pedidos</button>
+        </article>
+      </div>
+      <div class="excel-help">
+        <strong>Columnas admitidas de pedidos</strong>
+        <code>Pedido | Fecha | Cliente | Teléfono | Localidad | Dirección | Código | Medida | Producto | Cantidad | Precio | Flete | Flete % | Cobrado | Medio de pago | Recibo | Estado | Notas</code>
+        <p>Obligatorias: <code>Cliente</code>, <code>Producto</code> y <code>Precio</code>. Si ponés <code>Código</code> y <code>Medida</code> del catálogo, el pedido queda vinculado y toma el costo cargado; si no, entra como texto y sin costo. <strong>Los pedidos importados no descuentan stock</strong>, porque son ventas que ya pasaron.</p>
       </div>
     </section>
 
@@ -444,6 +559,10 @@
         <label class="span-2">Detalle<textarea name="detail" rows="3"></textarea></label>
         <div class="span-2 variant-editor">
           <div class="variant-editor-heading"><span>Medidas y precios *</span><button id="add-variant" type="button">+ Agregar medida</button></div>
+          <p class="variant-help">El <strong>costo</strong> es para tus números: no se publica en la tienda. Si cargás una <strong>oferta</strong>, el cliente ve ese precio y el anterior tachado.</p>
+          <div class="variant-head" aria-hidden="true">
+            <span>Medida *</span><span>Costo</span><span>Precio *</span><span>Oferta</span><span>Stock</span><span></span>
+          </div>
           <div id="variant-rows"></div>
           <small>Cada medida debe tener su precio de venta.</small>
         </div>
@@ -525,7 +644,7 @@
     </form>
   </section>
 
-  <section class="admin-modal" id="order-detail" aria-hidden="true">
+  <section class="admin-modal wide" id="order-detail" aria-hidden="true">
     <div class="modal-heading">
       <h2 id="order-detail-title">Pedido</h2>
       <button class="modal-close" data-close-modal type="button" aria-label="Cerrar">×</button>
@@ -534,7 +653,62 @@
     <div class="modal-actions">
       <button class="button button-outline" data-close-modal type="button">Cerrar</button>
       <button class="button button-whatsapp" id="order-whatsapp" type="button">Escribirle por WhatsApp</button>
+      <button class="button button-outline" id="order-add-payment" type="button">Registrar un pago</button>
+      <button class="button button-primary" id="order-pay-all" type="button">Cobré todo</button>
     </div>
+  </section>
+
+  <!-- Un cobro. El monto viene puesto con el saldo: el caso de todos los días
+       es "me pagó todo" y ahí solo hay que elegir el medio. -->
+  <section class="admin-modal" id="payment-editor" aria-hidden="true">
+    <div class="modal-heading"><div><p class="overline">Cobranza</p><h2 id="payment-editor-title">Registrar un pago</h2></div><button class="modal-close" data-close-modal type="button">×</button></div>
+    <form id="payment-form">
+      <p class="payment-context" id="payment-context"></p>
+      <div class="form-grid">
+        <label>Medio de pago *<select name="methodId" id="payment-method" required></select></label>
+        <label>Monto *<input name="monto" type="number" min="0.01" step="0.01" required></label>
+        <label>Fecha del cobro<input name="fecha" type="date"></label>
+        <label>Nº de recibo u observación<input name="notas" placeholder="Ej. Recibo 0034"></label>
+      </div>
+      <p class="payment-net" id="payment-net"></p>
+      <div class="modal-actions"><button class="button button-outline" data-close-modal type="button">Cancelar</button><button class="button button-primary" type="submit">Registrar el cobro</button></div>
+    </form>
+  </section>
+
+  <!-- Venta del mostrador. El precio es editable a propósito: en el rubro se
+       regatea y forzar el de lista haría que el panel no represente la venta. -->
+  <section class="admin-modal wide" id="local-order-editor" aria-hidden="true">
+    <div class="modal-heading"><div><p class="overline">Mostrador</p><h2>Cargar una venta del local</h2></div><button class="modal-close" data-close-modal type="button">×</button></div>
+    <form id="local-order-form">
+      <div class="form-grid">
+        <label>Cliente *<input name="nombre" required placeholder="Nombre y apellido"></label>
+        <label>Teléfono<input name="telefono" inputmode="tel" placeholder="3454938829"></label>
+        <label>Entrega<select name="modo">
+          <option value="Retiro en el local">Retiro en el local</option>
+          <option value="Envío a domicilio">Envío a domicilio</option>
+        </select></label>
+        <label>Localidad<input name="localidad" placeholder="Concordia"></label>
+        <label class="span-2">Dirección<input name="direccion"></label>
+        <div class="span-2 variant-editor">
+          <div class="variant-editor-heading"><span>Productos *</span><button id="add-local-item" type="button">+ Agregar producto</button></div>
+          <p class="variant-help">Elegí el producto y la medida: el precio se completa solo con el de la lista y lo podés cambiar.</p>
+          <div class="local-item-head" aria-hidden="true">
+            <span>Producto</span><span>Medida</span><span>Cant.</span><span>Precio unitario</span><span></span>
+          </div>
+          <div id="local-item-rows"></div>
+        </div>
+        <label>Flete: monto fijo<input name="flete" type="number" min="0" step="0.01" placeholder="0"></label>
+        <label>Flete: % sobre la mercadería<input name="fletePorcentaje" type="number" min="0" max="100" step="0.01" placeholder="0"><small>Se pueden usar los dos: se suman.</small></label>
+        <label>Estado de la entrega<select name="estado">
+          <option value="Entregado">Entregado</option>
+          <option value="Confirmado">Confirmado</option>
+          <option value="Nuevo">Nuevo</option>
+        </select><small>"Entregado" descuenta el stock.</small></label>
+        <label>Notas internas<input name="notas" placeholder="No se muestran al cliente"></label>
+      </div>
+      <p class="local-total" id="local-order-total"></p>
+      <div class="modal-actions"><button class="button button-outline" data-close-modal type="button">Cancelar</button><button class="button button-primary" type="submit">Guardar la venta</button></div>
+    </form>
   </section>
 
   <section class="admin-modal wide" id="preview-modal" aria-hidden="true">
