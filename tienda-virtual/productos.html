@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Catálogo completo de aberturas de aluminio en Concordia: ventanas, puertas, rejas, portones, mamparas y accesorios con medidas y precios publicados.">
+  <title>Productos | Aberturas Aluminio Concordia</title>
+  <link rel="icon" href="assets/logo-color.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="delivery-zones-data.js" defer></script>
+  <script src="store.js" defer></script>
+  <script src="layout.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body data-page="productos">
+
+  <main id="top">
+
+    <section class="page-hero">
+      <nav class="breadcrumb" aria-label="Ruta"><a href="index.html">Inicio</a><span>/</span><b>Productos</b></nav>
+      <h1 data-content="catalogTitle">Catálogo online</h1>
+      <p data-content="catalogText">Elegí medida, mano y color según las opciones disponibles de cada producto.</p>
+    </section>
+
+    <section class="section catalog-section" id="catalogo">
+      <div class="catalog-tools">
+        <label class="search">
+          <span>Buscar</span>
+          <input id="product-search" type="search" placeholder="Código, producto o categoría">
+        </label>
+        <label class="sort">
+          <span>Ordenar por</span>
+          <select id="product-sort">
+            <option value="featured">Destacados</option>
+            <option value="price-asc">Menor precio</option>
+            <option value="price-desc">Mayor precio</option>
+            <option value="name">Nombre</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="catalog-layout">
+        <aside class="filters">
+          <div class="filter-heading"><strong>Categorías</strong><button id="clear-filters" type="button">Ver todas</button></div>
+          <div id="category-filters"></div>
+        </aside>
+        <div>
+          <div class="result-count" id="result-count"></div>
+          <div class="product-grid" id="product-grid"></div>
+          <div class="empty-state" id="empty-state" hidden>
+            <strong data-content="emptyTitle">No encontramos productos</strong>
+            <p data-content="emptyText">Probá otra búsqueda o elegí una categoría diferente.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

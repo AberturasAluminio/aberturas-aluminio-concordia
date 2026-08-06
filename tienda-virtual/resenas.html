@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Opiniones de clientes de Aberturas Aluminio Concordia. Leé las reseñas y dejá la tuya después de tu compra.">
+  <title>Reseñas | Aberturas Aluminio Concordia</title>
+  <link rel="icon" href="assets/logo-color.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="delivery-zones-data.js" defer></script>
+  <script src="store.js" defer></script>
+  <script src="layout.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body data-page="resenas">
+
+  <main id="top">
+
+    <section class="page-hero">
+      <nav class="breadcrumb" aria-label="Ruta"><a href="index.html">Inicio</a><span>/</span><b>Reseñas</b></nav>
+      <h1 data-content="reviewsTitle">Lo que dicen nuestros clientes</h1>
+      <p data-content="reviewsText">Reseñas de personas que ya compraron en Aberturas Aluminio Concordia.</p>
+    </section>
+
+    <section class="section reviews-section">
+      <div class="reviews-summary" id="reviews-summary"></div>
+      <div class="reviews-grid" id="reviews-grid"></div>
+      <p class="reviews-empty" id="reviews-empty" hidden data-content="reviewsEmptyText">Todavía no hay reseñas publicadas.</p>
+    </section>
+
+    <!-- Las reseñas se dejan en Google: es el único lugar donde suman para
+         que el negocio aparezca en las búsquedas. -->
+    <section class="section review-cta-section">
+      <div class="review-cta-card">
+        <span class="review-cta-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.4-5.8-3-5.8 3 1.1-6.4L2.6 9.4l6.5-.9z"/></svg></span>
+        <h2 data-content="reviewsCtaTitle">¿Ya compraste con nosotros?</h2>
+        <p data-content="reviewsCtaText">Contá tu experiencia en Google. Nos ayuda a que más vecinos nos encuentren.</p>
+        <a class="button button-primary" data-google-review href="#" target="_blank" rel="noopener noreferrer"><span data-content="reviewsCta">Dejar mi reseña en Google</span></a>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

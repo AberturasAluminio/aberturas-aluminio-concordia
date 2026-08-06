@@ -15,26 +15,30 @@ const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 
+/* Un mismo app.js corre en las nueve páginas y cada una trae solo una parte
+   del HTML: el catálogo vive en productos.html, las zonas en la home. Por eso
+   todo lo que apunta a un nodo puntual se ata con `on` y se dibuja solo si el
+   contenedor existe. */
+const on = (selector, event, handler) => {
+  const element = $(selector);
+  if (element) element.addEventListener(event, handler);
+};
+
 // Iconos de línea, 24x24, trazo uniforme. Geometría recta para acompañar el
 // isotipo del logo. Se inyectan con innerHTML: son constantes, no datos.
-const svg = (paths) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true">${paths}</svg>`;
-
-const categoryIcons = {
-  "Ventanas de aluminio": svg('<rect x="3" y="4" width="18" height="16"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="8" y1="11" x2="8" y2="13"/><line x1="16" y1="11" x2="16" y2="13"/>'),
-  "Ventanas aluminio con rejas": svg('<rect x="3" y="4" width="18" height="16"/><line x1="8" y1="4" x2="8" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="16" y1="4" x2="16" y2="20"/>'),
-  "Puertas de chapa": svg('<rect x="6" y="3" width="12" height="18"/><line x1="9" y1="12" x2="10" y2="12"/><line x1="6" y1="7" x2="18" y2="7"/><line x1="6" y1="17" x2="18" y2="17"/>'),
-  "Puertas placa": svg('<rect x="6" y="3" width="12" height="18"/><rect x="9" y="6" width="6" height="5"/><rect x="9" y="14" width="6" height="4"/>'),
-  "Puertas de aluminio": svg('<rect x="6" y="3" width="12" height="18"/><rect x="8.5" y="5.5" width="7" height="7"/><line x1="9" y1="16" x2="10" y2="16"/>'),
-  "Rejas": svg('<rect x="3" y="5" width="18" height="14"/><line x1="8" y1="5" x2="8" y2="19"/><line x1="13" y1="5" x2="13" y2="19"/><line x1="18" y1="5" x2="18" y2="19"/><line x1="3" y1="12" x2="21" y2="12"/>'),
-  "Portones": svg('<rect x="2" y="6" width="20" height="12"/><line x1="7" y1="6" x2="7" y2="18"/><line x1="12" y1="6" x2="12" y2="18"/><line x1="17" y1="6" x2="17" y2="18"/><line x1="2" y1="21" x2="22" y2="21"/>'),
-  "Mamparas": svg('<rect x="3" y="3" width="9" height="18"/><rect x="12" y="3" width="9" height="18"/><line x1="6" y1="11" x2="6" y2="14"/>'),
-  "Accesorios": svg('<rect x="3" y="4" width="18" height="16"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/>'),
-};
-const fallbackIcon = svg('<rect x="4" y="4" width="16" height="16"/>');
+const svg = window.svgIcon;
 
 // Iconos de acción reutilizados en los botones que se generan por JS.
-const ICON_WA = '<svg class="icon-wa" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.04 2.02c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22.06l5.3-1.39c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01a9.86 9.86 0 0 0-7.01-2.94z"/><path fill="var(--wa-ink, #fff)" d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37s-1.04 1.02-1.04 2.48 1.06 2.88 1.21 3.08c.15.2 2.09 3.2 5.07 4.48.71.31 1.26.49 1.69.63.71.23 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35z"/></svg>';
+const ICON_WA = window.ICON_WA;   // definido en layout.js, que corre antes
 const ICON_CART = '<svg class="icon-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16l-1.4 12.2a1.6 1.6 0 0 1-1.6 1.4H7a1.6 1.6 0 0 1-1.6-1.4z"/><path d="M9 10V6.2A2.2 2.2 0 0 1 11.2 4h1.6A2.2 2.2 0 0 1 15 6.2V10"/></svg>';
+
+// Iconos de los grupos de preguntas frecuentes. La clave es el `icon` del grupo.
+const faqIcons = {
+  producto: svg('<rect x="3" y="4" width="18" height="16"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="8" y1="11" x2="8" y2="13"/><line x1="16" y1="11" x2="16" y2="13"/>'),
+  envio: svg('<rect x="1" y="7" width="13" height="9"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="6" cy="18" r="1.7"/><circle cx="17.5" cy="18" r="1.7"/>'),
+  pago: svg('<rect x="2" y="5" width="20" height="14"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="11" y2="15"/>'),
+  medida: svg('<rect x="2" y="8" width="20" height="8"/><line x1="7" y1="8" x2="7" y2="12"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="17" y1="8" x2="17" y2="12"/>'),
+};
 
 function normalizeText(value) {
   return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es").trim();
@@ -49,22 +53,30 @@ function applyCommerceContent() {
     if (value !== undefined) element.textContent = value;
   });
   // Los pasos salen del texto editable del panel, separados por "|".
-  const flow = String(content.purchaseFlow || "").split("|").map((item) => item.trim()).filter(Boolean);
-  $("#purchase-flow").innerHTML = flow
-    .map((item, index) => `<li><span class="step-n">${index + 1}</span><span class="step-text">${esc(item)}</span></li>`)
-    .join("");
+  if ($("#purchase-flow")) {
+    const flow = String(content.purchaseFlow || "").split("|").map((item) => item.trim()).filter(Boolean);
+    $("#purchase-flow").innerHTML = flow
+      .map((item, index) => `<li><span class="step-n">${index + 1}</span><span class="step-text">${esc(item)}</span></li>`)
+      .join("");
+  }
   const settings = Store.getSettings();
   const phone = settings.whatsapp;
   const formattedPhone = phone === "5493454938829" ? "+54 9 345 493 8829" : `+${phone}`;
   document.querySelectorAll("[data-store-phone]").forEach((element) => {
     element.textContent = formattedPhone;
   });
-  // La dirección se edita en Configuración, no en los textos.
+  // La dirección y el correo se editan en Configuración, no en los textos.
   document.querySelectorAll("[data-store-address]").forEach((element) => {
     element.textContent = settings.address || "";
   });
-  $("#locality-suggestions").innerHTML = state.deliveryZones.filter((zone) => zone.available).slice(0, 5)
-    .map((zone) => `<button data-locality="${esc(zone.locality)}" type="button">${esc(zone.locality)}</button>`).join("");
+  document.querySelectorAll("[data-store-email]").forEach((element) => {
+    element.textContent = settings.email || "";
+    if (element.tagName === "A") element.href = settings.email ? `mailto:${settings.email}` : "#";
+  });
+  if ($("#locality-suggestions")) {
+    $("#locality-suggestions").innerHTML = state.deliveryZones.filter((zone) => zone.available).slice(0, 5)
+      .map((zone) => `<button data-locality="${esc(zone.locality)}" type="button">${esc(zone.locality)}</button>`).join("");
+  }
   renderDeliveryZoneList();
 }
 
@@ -132,6 +144,7 @@ function searchLocality(value) {
 }
 
 function renderDeliveryZoneList(value = "") {
+  if (!$("#delivery-zone-rows")) return;
   const query = normalizeText(value);
   const numeric = query.replace(/\D/g, "");
   const visible = state.deliveryZones.filter((zone) => {
@@ -173,12 +186,8 @@ function productGallery(product) {
 }
 
 function renderCategories() {
+  if (!$("#category-filters")) return;
   const counts = Object.fromEntries(Store.categories.map((category) => [category, state.products.filter((product) => product.active && product.category === category).length]));
-  $("#category-strip").innerHTML = Store.categories.map((category) => `
-    <button class="nav-category ${state.category === category ? "active" : ""}" data-category="${esc(category)}" type="button">
-      <b>${categoryIcons[category] || fallbackIcon}</b><span>${esc(category)}</span>
-    </button>
-  `).join("");
   $("#category-filters").innerHTML = `
     <button class="filter-option ${state.category === "Todas" ? "active" : ""}" data-category="Todas" type="button"><span>Todas</span><b>${state.products.filter((product) => product.active).length}</b></button>
     ${Store.categories.map((category) => `<button class="filter-option ${state.category === category ? "active" : ""}" data-category="${esc(category)}" type="button"><span>${esc(category)}</span><b>${counts[category]}</b></button>`).join("")}
@@ -223,6 +232,7 @@ function productCard(product) {
 }
 
 function renderProducts() {
+  if (!$("#product-grid")) return;
   const visible = filteredProducts();
   $("#result-count").textContent = `${visible.length} producto${visible.length === 1 ? "" : "s"}`;
   $("#product-grid").innerHTML = visible.map(productCard).join("");
@@ -240,6 +250,76 @@ function renderFeatured() {
   grid.innerHTML = featured.map(productCard).join("");
   const seccion = grid.closest("section");
   if (seccion) seccion.hidden = featured.length === 0;
+}
+
+/* ---------- Preguntas frecuentes ----------
+   Cada pregunta es un <details>: el desplegable, el foco y el teclado los
+   resuelve el navegador, así que acá no hace falta JavaScript. Se abre la
+   primera para que se entienda de un vistazo que las demás también abren. */
+function renderFaqs() {
+  const container = $("#faq-groups");
+  if (!container) return;
+  const groups = Store.getFaqs().filter((group) => group.items.length);
+  container.innerHTML = groups.map((group, groupIndex) => `
+    <section class="faq-group">
+      <h3 class="faq-group-title"><span class="faq-group-icon">${faqIcons[group.icon] || faqIcons.producto}</span>${esc(group.title)}</h3>
+      <div class="faq-list">
+        ${group.items.map((item, itemIndex) => `
+          <details class="faq-item"${groupIndex === 0 && itemIndex === 0 ? " open" : ""}>
+            <summary>${esc(item.q)}</summary>
+            <div class="faq-answer"><p>${esc(item.a)}</p></div>
+          </details>`).join("")}
+      </div>
+    </section>`).join("");
+}
+
+/* ---------- Reseñas ----------
+   Son las de Google Maps, cargadas desde el panel. La tienda no recibe
+   reseñas propias: Google no permite publicar en su ficha desde afuera, así
+   que quien quiera dejar la suya va directo a Maps. */
+function stars(rating) {
+  return `<span class="stars" aria-label="${rating} de 5 estrellas">${
+    Array.from({ length: 5 }, (_, index) => `<svg class="${index < rating ? "on" : ""}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.4-5.8-3-5.8 3 1.1-6.4L2.6 9.4l6.5-.9z"/></svg>`).join("")
+  }</span>`;
+}
+
+function renderReviews() {
+  const grid = $("#reviews-grid");
+  if (!grid) return;
+  const published = Store.getReviews().filter((review) => review.published);
+  const average = published.length
+    ? published.reduce((sum, review) => sum + review.rating, 0) / published.length
+    : 0;
+  const maps = Store.getSettings().googleMaps;
+
+  $("#reviews-summary").innerHTML = `
+    <div class="reviews-score">
+      ${published.length ? `<strong>${average.toFixed(1).replace(".", ",")}</strong>${stars(Math.round(average))}<span>${published.length} reseña${published.length === 1 ? "" : "s"} en Google</span>` : `<strong class="sin-datos">—</strong><span>Todavía sin reseñas publicadas</span>`}
+    </div>
+    ${maps ? `<a class="button button-outline" href="${esc(maps)}" target="_blank" rel="noopener noreferrer">Ver todas en Google</a>` : ""}`;
+
+  grid.innerHTML = published.map((review) => {
+    // La fecha solo se muestra si el panel la cargó; no se inventa.
+    const fecha = review.date ? new Date(review.date).toLocaleDateString("es-AR", { month: "long", year: "numeric" }) : "";
+    const pie = [fecha, review.source === "Google" ? "Google" : ""].filter(Boolean).join(" · ");
+    return `
+    <article class="review-card">
+      ${stars(review.rating)}
+      <p>${esc(review.text)}</p>
+      <footer>
+        <strong>${esc(review.name)}</strong>
+        ${pie ? `<span>${esc(pie)}</span>` : ""}
+      </footer>
+    </article>`;
+  }).join("");
+
+  $("#reviews-empty").hidden = published.length > 0;
+
+  // El botón para dejar una reseña sale de la ficha de Google configurada.
+  document.querySelectorAll("[data-google-review]").forEach((element) => {
+    element.href = maps || "#";
+    element.hidden = !maps;
+  });
 }
 
 function selectOptions(label, name, values) {
@@ -601,7 +681,13 @@ function showToast(message) {
   showToast.timer = setTimeout(() => $("#toast").classList.remove("show"), 2400);
 }
 
+/* El catálogo vive en productos.html. Si se elige una categoría desde otra
+   página, se va hasta allá con el filtro puesto en la URL. */
 function setCategory(category) {
+  if (!$("#product-grid")) {
+    window.location.href = `productos.html?categoria=${encodeURIComponent(category)}`;
+    return;
+  }
   state.category = category;
   renderCategories();
   renderProducts();
@@ -645,21 +731,21 @@ document.addEventListener("change", (event) => {
   $(".detail-price").textContent = money.format(variant ? variant.price : state.currentProduct.price);
 });
 
-$("#product-search").addEventListener("input", (event) => { state.search = event.target.value; renderProducts(); });
-$("#product-sort").addEventListener("change", (event) => { state.sort = event.target.value; renderProducts(); });
-$("#clear-filters").addEventListener("click", () => setCategory("Todas"));
-$("#open-cart").addEventListener("click", openCart);
-$("#close-cart").addEventListener("click", closeCart);
-$("#continue-shopping").addEventListener("click", closeCart);
-$("#drawer-backdrop").addEventListener("click", closeCart);
-$("#product-backdrop").addEventListener("click", closeProduct);
-$("#go-checkout").addEventListener("click", irADatos);
-$("#cart-back").addEventListener("click", () => mostrarPaso("cart"));
-$("#back-to-cart").addEventListener("click", () => mostrarPaso("cart"));
-$("#step-datos").addEventListener("change", (event) => {
+on("#product-search", "input", (event) => { state.search = event.target.value; renderProducts(); });
+on("#product-sort", "change", (event) => { state.sort = event.target.value; renderProducts(); });
+on("#clear-filters", "click", () => setCategory("Todas"));
+on("#open-cart", "click", openCart);
+on("#close-cart", "click", closeCart);
+on("#continue-shopping", "click", () => { closeCart(); if (!$("#product-grid")) window.location.href = "productos.html"; });
+on("#drawer-backdrop", "click", closeCart);
+on("#product-backdrop", "click", closeProduct);
+on("#go-checkout", "click", irADatos);
+on("#cart-back", "click", () => mostrarPaso("cart"));
+on("#back-to-cart", "click", () => mostrarPaso("cart"));
+on("#step-datos", "change", (event) => {
   if (event.target.name === "modo") aplicarModoEntrega();
 });
-$("#step-datos").addEventListener("submit", (event) => {
+on("#step-datos", "submit", (event) => {
   event.preventDefault();
   const form = event.target;
   const datos = Object.fromEntries(new FormData(form));
@@ -684,17 +770,17 @@ $("#step-datos").addEventListener("submit", (event) => {
   Store.saveBuyer(aRecordar);
   enviarPedido(datos);
 });
-$("#cart-shipping-form").addEventListener("submit", (event) => {
+on("#cart-shipping-form", "submit", (event) => {
   event.preventDefault();
   calcularEnvio($("#cart-postal").value);
 });
-$("#clear-cart").addEventListener("click", () => { state.cart = []; Store.saveCart(state.cart); renderCart(); });
-$("#locality-search-form").addEventListener("submit", (event) => {
+on("#clear-cart", "click", () => { state.cart = []; Store.saveCart(state.cart); renderCart(); });
+on("#locality-search-form", "submit", (event) => {
   event.preventDefault();
   searchLocality($("#locality-search").value);
 });
-$("#locality-search").addEventListener("input", (event) => renderDeliveryZoneList(event.target.value));
-$("#cart-items").addEventListener("click", (event) => {
+on("#locality-search", "input", (event) => renderDeliveryZoneList(event.target.value));
+on("#cart-items", "click", (event) => {
   const change = event.target.closest("[data-cart-change]");
   const remove = event.target.closest("[data-cart-remove]");
   if (change) {
@@ -708,8 +794,8 @@ $("#cart-items").addEventListener("click", (event) => {
 });
 document.addEventListener("keydown", (event) => { if (event.key === "Escape") { closeProduct(); closeCart(); } });
 
-// Flechas del menú de categorías: solo se muestran si hay contenido fuera de vista.
-const navStrip = $("#category-strip");
+// Flechas del menú: solo se muestran si hay páginas fuera de vista.
+const navStrip = $("#page-strip");
 function updateNavArrows() {
   const resto = navStrip.scrollWidth - navStrip.clientWidth;
   $("#nav-prev").hidden = resto < 4 || navStrip.scrollLeft < 4;
@@ -721,26 +807,48 @@ function scrollNav(dir) {
   navStrip.scrollBy({ left: dir * navStrip.clientWidth * .7, behavior: "smooth" });
   setTimeout(updateNavArrows, 420);
 }
-$("#nav-prev").addEventListener("click", () => scrollNav(-1));
-$("#nav-next").addEventListener("click", () => scrollNav(1));
+on("#nav-prev", "click", () => scrollNav(-1));
+on("#nav-next", "click", () => scrollNav(1));
 navStrip.addEventListener("scroll", updateNavArrows, { passive: true });
 window.addEventListener("resize", updateNavArrows);
-$("#nav-all").addEventListener("click", () => setCategory("Todas"));
 
-// El buscador del header alimenta el mismo filtro del catálogo y baja hasta él.
-$("#head-search-form").addEventListener("submit", (event) => {
+// El buscador del header alimenta el filtro del catálogo. Desde otra página
+// no hay nada que filtrar, así que lleva a Productos con la búsqueda puesta.
+on("#head-search-form", "submit", (event) => {
   event.preventDefault();
   const value = $("#head-search").value;
+  if (!$("#product-grid")) {
+    window.location.href = `productos.html?q=${encodeURIComponent(value)}`;
+    return;
+  }
   state.search = value;
   $("#product-search").value = value;
   renderProducts();
   $("#catalogo").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
+/* Productos abre filtrado por lo que traiga la URL: así funcionan el
+   desplegable de categorías, los banners de la home y el buscador. */
+function applyUrlFilters() {
+  if (!$("#product-grid")) return;
+  const params = new URLSearchParams(window.location.search);
+  const category = params.get("categoria");
+  const query = params.get("q");
+  if (category && Store.categories.includes(category)) state.category = category;
+  if (query) {
+    state.search = query;
+    $("#product-search").value = query;
+    $("#head-search").value = query;
+  }
+}
+
 $("#year").textContent = new Date().getFullYear();
+applyUrlFilters();
 applyCommerceContent();
 renderCategories();
 renderProducts();
 renderFeatured();
+renderFaqs();
+renderReviews();
 renderCart();
 updateNavArrows();
