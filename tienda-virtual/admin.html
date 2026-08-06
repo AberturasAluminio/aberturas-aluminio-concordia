@@ -72,7 +72,7 @@
       <div class="panel-section-heading">
         <div>
           <p class="overline">Cómo viene el negocio</p><h2 id="dash-title">Resumen del mes</h2>
-          <p>Se calcula con los pedidos cargados. "Comprometido" es lo vendido; "entrado" es la plata que ya cobraste.</p>
+          <p>Se calcula con los pedidos cargados. "Comprometido" es lo vendido; "entrado" es la plata que ya cobraste. Abajo de todo, lo que te queda limpio.</p>
         </div>
         <label class="dash-range">Período
           <select id="dash-period">
@@ -87,6 +87,11 @@
       <div class="dash-alert" id="dash-cost-alert" hidden></div>
 
       <div class="dash-grid" id="dash-cards"></div>
+
+      <!-- El número que cierra. Va aparte y con el desglose a la vista porque
+           es el que se mira para decidir, y porque tiene que quedar claro de
+           dónde sale cada peso. -->
+      <section class="dash-neta" id="dash-neta"></section>
 
       <div class="admin-grid two dash-tables">
         <article class="admin-card">

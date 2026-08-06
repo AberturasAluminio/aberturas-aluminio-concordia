@@ -353,6 +353,31 @@ function renderDashboard() {
     tarjeta("Ticket promedio", money.format(ticket)),
   ].join("");
 
+  /* Lo que queda limpio de la venta. Es la ganancia de la mercadería más el
+     flete que cobró, menos lo que se llevaron los medios de pago. No incluye
+     alquiler, luz ni sueldos: esto es el resultado de vender, no la
+     contabilidad del negocio, y esa cuenta la lleva ella por su lado. */
+  const comisiones = entrado - entradoNeto;
+  const neta = margen + flete - comisiones;
+  const renglon = (etiqueta, valor, signo) =>
+    `<li><span>${etiqueta}</span><strong class="${signo === "−" ? "resta" : ""}">${signo} ${money.format(Math.abs(valor))}</strong></li>`;
+  $("#dash-neta").innerHTML = `
+    <div class="dash-neta-detalle">
+      <p class="overline">De dónde sale</p>
+      <ul>
+        ${renglon("Ganancia de la mercadería", margen, margen < 0 ? "−" : "+")}
+        ${renglon("Flete cobrado", flete, "+")}
+        ${renglon("Comisiones de los medios de pago", comisiones, "−")}
+      </ul>
+    </div>
+    <div class="dash-neta-total">
+      <small>Te queda limpio</small>
+      <strong>${money.format(neta)}</strong>
+      ${ventaSinCosto > 0
+        ? `<em>Sin contar ${money.format(ventaSinCosto)} de productos sin costo cargado: cuando los cargues, este número se corrige solo.</em>`
+        : "<em>Descontando el costo de fabricación y las comisiones.</em>"}
+    </div>`;
+
   // Sin costos cargados el margen que muestra el panel es el precio entero, y
   // eso es peor que no mostrar nada: hay que decirlo en la cara.
   const sinCosto = adminState.products.reduce((sum, product) =>
