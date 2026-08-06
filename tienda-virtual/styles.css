@@ -1160,6 +1160,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue); }
 .cart-total-line span { color: var(--ink); font-size: 17px; font-weight: 700; }
 .cart-total-line strong { color: var(--blue); font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
 
+.cart-note { margin: 16px 0 12px; color: var(--ink-soft); font-size: 12px; line-height: 1.55; }
+
 /* Zona de entrega dentro del carrito */
 .cart-shipping { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
 .cart-shipping-head {

@@ -155,7 +155,7 @@
       <a href="politica-de-devoluciones.html">Política de devoluciones</a>
     </nav>
     <div class="footer-legal">
-      <span>© <span id="year"></span> Aberturas Aluminio Concordia</span>
+      <span>© <span id="year"></span> <span data-store-name>Aberturas Aluminio Concordia</span></span>
       <span data-content="footerRegion">Concordia, Entre Ríos · Argentina</span>
       <span class="footer-credit" data-content="footerCredit">Creado por Sistemas Umbral</span>
     </div>
@@ -211,6 +211,8 @@
           <span data-content="cartTotalLabel">Total</span>
           <strong id="cart-grand-total">$ 0</strong>
         </div>
+
+        <p class="cart-note" data-content="cartNote">La compra se confirma por WhatsApp luego de verificar stock, variantes y entrega.</p>
 
         <button class="button button-whatsapp full" id="go-checkout" type="button">
           ${ICON_WA}

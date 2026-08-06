@@ -65,7 +65,10 @@ function applyCommerceContent() {
   document.querySelectorAll("[data-store-phone]").forEach((element) => {
     element.textContent = formattedPhone;
   });
-  // La dirección y el correo se editan en Configuración, no en los textos.
+  // El nombre, la dirección y el correo se editan en Configuración, no en los textos.
+  document.querySelectorAll("[data-store-name]").forEach((element) => {
+    element.textContent = settings.name || "";
+  });
   document.querySelectorAll("[data-store-address]").forEach((element) => {
     element.textContent = settings.address || "";
   });
@@ -125,7 +128,6 @@ function renderDeliveryResult(zones, searchValue = "") {
     container.innerHTML = `<h4>Consultanos por ${esc(searchValue)}</h4><p>No encontramos una localidad o CP coincidente. Escribinos para verificar recorrido y condición de pago.</p><button class="button button-whatsapp button-small" data-zone-whatsapp="${esc(searchValue)}" type="button">${ICON_WA}Consultar por WhatsApp</button>`;
     return;
   }
-  const zone = zones[0];
   container.className = "delivery-result";
   container.innerHTML = `${zones.length > 1 ? `<p class="match-count">${zones.length} localidades coinciden con la búsqueda.</p>` : ""}${zones.map(deliveryZoneCard).join("")}`;
 }
@@ -170,7 +172,7 @@ function productType(product) {
   return "window";
 }
 
-function productVisual(product, compact = false) {
+function productVisual(product) {
   const image = product.images?.[0] || product.image;
   if (image) return `<img src="${esc(image)}" alt="${esc(product.name)}">`;
   return `<div class="product-placeholder ${productType(product)}" aria-label="Imagen ilustrativa de ${esc(product.name)}"></div>`;
@@ -291,16 +293,20 @@ function renderReviews() {
     ? published.reduce((sum, review) => sum + review.rating, 0) / published.length
     : 0;
   const maps = Store.getSettings().googleMaps;
+  // "en Google" solo si todas vienen de ahí: el panel puede cargar reseñas propias.
+  const soloGoogle = published.every((review) => review.source === "Google");
 
   $("#reviews-summary").innerHTML = `
     <div class="reviews-score">
-      ${published.length ? `<strong>${average.toFixed(1).replace(".", ",")}</strong>${stars(Math.round(average))}<span>${published.length} reseña${published.length === 1 ? "" : "s"} en Google</span>` : `<strong class="sin-datos">—</strong><span>Todavía sin reseñas publicadas</span>`}
+      ${published.length ? `<strong>${average.toFixed(1).replace(".", ",")}</strong>${stars(Math.round(average))}<span>${published.length} reseña${published.length === 1 ? "" : "s"}${soloGoogle ? " en Google" : ""}</span>` : `<strong class="sin-datos">—</strong><span>Todavía sin reseñas publicadas</span>`}
     </div>
     ${maps ? `<a class="button button-outline" href="${esc(maps)}" target="_blank" rel="noopener noreferrer">Ver todas en Google</a>` : ""}`;
 
   grid.innerHTML = published.map((review) => {
-    // La fecha solo se muestra si el panel la cargó; no se inventa.
-    const fecha = review.date ? new Date(review.date).toLocaleDateString("es-AR", { month: "long", year: "numeric" }) : "";
+    // La fecha solo se muestra si el panel la cargó; no se inventa. Se lee al
+    // mediodía porque "2026-08-01" solo se parsea como UTC: a la medianoche,
+    // en Argentina cae el día anterior y el mes sale corrido.
+    const fecha = review.date ? new Date(`${review.date}T12:00:00`).toLocaleDateString("es-AR", { month: "long", year: "numeric" }) : "";
     const pie = [fecha, review.source === "Google" ? "Google" : ""].filter(Boolean).join(" · ");
     return `
     <article class="review-card">
@@ -315,10 +321,12 @@ function renderReviews() {
 
   $("#reviews-empty").hidden = published.length > 0;
 
-  // El botón para dejar una reseña sale de la ficha de Google configurada.
+  // El botón abre el formulario de reseña de Google. Si no está configurado,
+  // cae a la ficha de Maps, desde donde igual se llega a "Escribir una reseña".
+  const escribir = Store.getSettings().googleReview || maps;
   document.querySelectorAll("[data-google-review]").forEach((element) => {
-    element.href = maps || "#";
-    element.hidden = !maps;
+    element.href = escribir || "#";
+    element.hidden = !escribir;
   });
 }
 
@@ -459,13 +467,26 @@ function iniciarCompraDirecta() {
    "A confirmar" y no se suma al subtotal. */
 const esAPedido = (item) => item.price === null;
 
+/* El precio se vuelve a leer del catálogo en cada render en vez de confiar en
+   el que se guardó al agregar: si el negocio actualiza la lista, quien tenga
+   el carrito abierto ve el valor nuevo y el pedido sale con ese. */
+function precioActual(item) {
+  if (esAPedido(item)) return null;
+  const product = state.products.find((candidate) => candidate.code === item.code);
+  const variant = product?.variants.find((candidate) => candidate.measure === item.measure);
+  if (variant) return variant.price;
+  // Si esa medida ya no está en el catálogo vale más lo guardado que el
+  // "desde" del producto, que es el mínimo de las medidas que quedaron.
+  const guardado = Number(item.price);
+  return Number.isFinite(guardado) ? guardado : (product?.price ?? 0);
+}
+
 function renderCart() {
   state.cart = state.cart.filter((item) => state.products.some((product) => product.code === item.code));
   const units = state.cart.reduce((sum, item) => sum + item.quantity, 0);
   const total = state.cart.reduce((sum, item) => {
     if (esAPedido(item)) return sum;
-    const product = state.products.find((candidate) => candidate.code === item.code);
-    return sum + (Number(item.price) || product?.price || 0) * item.quantity;
+    return sum + precioActual(item) * item.quantity;
   }, 0);
   $("#cart-count").textContent = units;
   $("#cart-items").innerHTML = state.cart.map((item) => {
@@ -473,9 +494,9 @@ function renderCart() {
     const options = [item.measure, item.hand, item.color].filter(Boolean).join(" · ");
     const importe = esAPedido(item)
       ? '<em class="a-pedido">A confirmar</em>'
-      : money.format((Number(item.price) || product.price) * item.quantity);
+      : money.format(precioActual(item) * item.quantity);
     return `<article class="cart-item">
-      <div class="cart-thumb">${productVisual(product, true)}</div>
+      <div class="cart-thumb">${productVisual(product)}</div>
       <div><h4>${esc(product.name)}</h4><p>${esc(options || product.code)}</p>
         <div class="quantity"><button data-cart-change="${esc(item.key)}" data-delta="-1" type="button">−</button><span>${item.quantity}</span><button data-cart-change="${esc(item.key)}" data-delta="1" type="button">+</button></div>
       </div>
@@ -554,7 +575,7 @@ function cartLines() {
     const options = [item.measure, item.hand, item.color].filter(Boolean).join(", ");
     const importe = esAPedido(item)
       ? "a confirmar"
-      : money.format((Number(item.price) || product.price) * item.quantity);
+      : money.format(precioActual(item) * item.quantity);
     return `- ${item.quantity} x ${product.name} [${product.code}]${options ? ` (${options})` : ""}: ${importe}`;
   });
 }
@@ -562,8 +583,7 @@ function cartLines() {
 function cartTotal() {
   return state.cart.reduce((sum, item) => {
     if (esAPedido(item)) return sum;
-    const product = state.products.find((candidate) => candidate.code === item.code);
-    return sum + (Number(item.price) || product.price) * item.quantity;
+    return sum + precioActual(item) * item.quantity;
   }, 0);
 }
 
@@ -577,7 +597,7 @@ function registrarPedido(datos, total) {
       name: product ? product.name : item.code,
       opciones: [item.measure, item.hand, item.color].filter(Boolean).join(", "),
       cantidad: item.quantity,
-      precio: esAPedido(item) ? null : (Number(item.price) || product?.price || 0),
+      precio: precioActual(item),
     };
   });
   Store.addOrder({

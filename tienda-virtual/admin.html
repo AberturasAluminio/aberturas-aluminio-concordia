@@ -39,6 +39,8 @@
       <button data-tab="excel" type="button">Importar / Exportar Excel</button>
       <button data-tab="delivery" type="button">Localidades y entregas</button>
       <button data-tab="content" type="button">Textos comerciales</button>
+      <button data-tab="faqs" type="button">Preguntas frecuentes</button>
+      <button data-tab="reviews" type="button">Reseñas</button>
       <button data-tab="backup" type="button">Copia de seguridad</button>
       <button data-tab="settings" type="button">Configuración</button>
     </nav>
@@ -216,6 +218,33 @@
         </div>
       </details>
       <details class="content-block">
+        <summary><strong>Preguntas frecuentes</strong><span>El encabezado de la sección (las preguntas van en su propia pestaña)</span></summary>
+        <div class="form-grid">
+          <label>Título<input name="faqTitle"></label>
+          <label class="span-2">Descripción<textarea name="faqText" rows="2"></textarea></label>
+          <label>Texto sobre el botón<input name="faqCtaText"></label>
+          <label>Texto del botón<input name="faqCta"></label>
+        </div>
+      </details>
+      <details class="content-block">
+        <summary><strong>Reseñas</strong><span>El encabezado y la invitación a dejar una reseña</span></summary>
+        <div class="form-grid">
+          <label>Título<input name="reviewsTitle"></label>
+          <label class="span-2">Descripción<textarea name="reviewsText" rows="2"></textarea></label>
+          <label class="span-2">Invitación: título<input name="reviewsCtaTitle"></label>
+          <label class="span-2">Invitación: texto<textarea name="reviewsCtaText" rows="2"></textarea></label>
+          <label>Texto del botón<input name="reviewsCta"></label>
+          <label>Cuando no hay ninguna publicada<input name="reviewsEmptyText"></label>
+        </div>
+      </details>
+      <details class="content-block">
+        <summary><strong>Medios de pago</strong><span>El encabezado de esa página</span></summary>
+        <div class="form-grid">
+          <label>Título<input name="paymentTitle"></label>
+          <label class="span-2">Descripción<textarea name="paymentText" rows="2"></textarea></label>
+        </div>
+      </details>
+      <details class="content-block">
         <summary><strong>Zonas de entrega</strong><span>El buscador de localidades y su listado</span></summary>
         <div class="form-grid">
           <label>Título<input name="deliveryTitle"></label>
@@ -265,6 +294,8 @@
           <label>Enlace 6<input name="footerLink6"></label>
           <label>Enlace 7<input name="footerLink7"></label>
           <label>Enlace 8<input name="footerLink8"></label>
+          <label>Enlace 9<input name="footerLink9"></label>
+          <label>Enlace 10<input name="footerLink10"></label>
         </div>
       </details>
 
@@ -314,11 +345,63 @@
       </form>
     </section>
 
+    <section class="admin-panel" data-panel="faqs">
+      <div class="panel-section-heading">
+        <div>
+          <p class="overline">Contenido público</p><h2>Preguntas frecuentes</h2>
+          <p>Se muestran agrupadas por tema en la página de inicio y en su propia página.</p>
+        </div>
+        <div class="content-actions">
+          <button class="button button-outline" id="reset-faqs" type="button">Restaurar preguntas originales</button>
+          <button class="button button-primary" id="new-faq-group" type="button">+ Nuevo grupo</button>
+        </div>
+      </div>
+      <p class="panel-count" id="faq-count"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Grupo</th><th>Ícono</th><th>Preguntas</th><th>Acciones</th></tr></thead>
+          <tbody id="faq-table"></tbody>
+        </table>
+      </div>
+      <div class="panel-empty" id="faq-empty" hidden>
+        <strong>No hay preguntas cargadas</strong>
+        <p>La sección de preguntas frecuentes no se muestra en la tienda hasta que agregues al menos un grupo.</p>
+      </div>
+    </section>
+
+    <section class="admin-panel" data-panel="reviews">
+      <div class="panel-section-heading">
+        <div>
+          <p class="overline">Contenido público</p><h2>Reseñas de clientes</h2>
+          <p>Solo se muestran en la tienda las que estén publicadas. El promedio se calcula con esas.</p>
+        </div>
+        <div class="content-actions">
+          <button class="button button-outline" id="reset-reviews" type="button">Restaurar reseñas originales</button>
+          <button class="button button-primary" id="new-review" type="button">+ Nueva reseña</button>
+        </div>
+      </div>
+      <p class="panel-count" id="reviews-count"></p>
+      <div class="aviso-local">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r=".7" fill="currentColor"/></svg>
+        <span>Las reseñas de Google se copian a mano: Google no permite traerlas solas ni publicar desde acá una reseña escrita en la tienda. El botón de la tienda lleva a dejarla en Google.</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cliente</th><th>Puntuación</th><th>Reseña</th><th>Origen</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="reviews-table"></tbody>
+        </table>
+      </div>
+      <div class="panel-empty" id="reviews-empty" hidden>
+        <strong>No hay reseñas cargadas</strong>
+        <p>Agregá las que el negocio tenga en Google, o dejá la sección vacía si preferís no mostrarla.</p>
+      </div>
+    </section>
+
     <section class="admin-panel" data-panel="backup">
       <div class="admin-grid two">
         <div class="admin-card">
           <p class="overline">Guardar</p><h2>Descargar copia</h2>
-          <p>Genera un archivo con los productos, las localidades, los textos y la configuración. Sirve para pasar todo a otra computadora o para volver atrás si algo sale mal.</p>
+          <p>Genera un archivo con los productos, las localidades, los textos, las preguntas, las reseñas, los pedidos y la configuración. Sirve para pasar todo a otra computadora o para volver atrás si algo sale mal.</p>
           <button class="button button-primary full" id="export-backup" type="button">Descargar copia de seguridad</button>
         </div>
         <div class="admin-card">
@@ -343,6 +426,7 @@
         <label>Número de WhatsApp<input name="whatsapp" inputmode="numeric" placeholder="Ej. 5493450000000"><small>Solo números, con código de país y área.</small></label>
         <label>Dirección<input name="address"></label>
         <label>Dominio<input name="domain"></label>
+        <label>Link para dejar una reseña en Google<input name="googleReview" type="url" placeholder="https://search.google.com/local/writereview?placeid=..."><small>Abre directo el formulario de Google. Si lo dejás vacío, el botón lleva a la ficha del negocio en Maps.</small></label>
         <button class="button button-primary" type="submit">Guardar configuración</button>
       </form>
     </section>
@@ -391,6 +475,53 @@
         <label class="span-2">Observaciones<textarea name="observations" rows="3" placeholder="Condiciones de pago, recorrido o aclaraciones"></textarea></label>
       </div>
       <div class="modal-actions"><button class="button button-outline" data-close-modal type="button">Cancelar</button><button class="button button-primary" type="submit">Guardar localidad</button></div>
+    </form>
+  </section>
+
+  <section class="admin-modal" id="faq-editor" aria-hidden="true">
+    <div class="modal-heading"><div><p class="overline">Preguntas frecuentes</p><h2 id="faq-editor-title">Nuevo grupo</h2></div><button class="modal-close" data-close-modal type="button">×</button></div>
+    <form id="faq-form">
+      <input name="originalId" type="hidden">
+      <div class="form-grid">
+        <label>Título del grupo *<input name="title" required placeholder="Ej. Envíos"></label>
+        <label>Ícono<select name="icon">
+          <option value="producto">Producto</option>
+          <option value="envio">Envío</option>
+          <option value="pago">Pago</option>
+          <option value="medida">Medida</option>
+        </select></label>
+        <div class="span-2 variant-editor">
+          <div class="variant-editor-heading"><span>Preguntas y respuestas *</span><button id="add-faq-item" type="button">+ Agregar pregunta</button></div>
+          <div id="faq-item-rows"></div>
+          <small>Se muestran en la tienda en este mismo orden.</small>
+        </div>
+      </div>
+      <div class="modal-actions"><button class="button button-outline" data-close-modal type="button">Cancelar</button><button class="button button-primary" type="submit">Guardar grupo</button></div>
+    </form>
+  </section>
+
+  <section class="admin-modal" id="review-editor" aria-hidden="true">
+    <div class="modal-heading"><div><p class="overline">Reseñas</p><h2 id="review-editor-title">Nueva reseña</h2></div><button class="modal-close" data-close-modal type="button">×</button></div>
+    <form id="review-form">
+      <input name="originalId" type="hidden">
+      <div class="form-grid">
+        <label>Nombre de quien la dejó *<input name="name" required placeholder="Ej. Eduardo Sandoval"></label>
+        <label>Puntuación *<select name="rating" required>
+          <option value="5">5 · Excelente</option>
+          <option value="4">4 · Muy buena</option>
+          <option value="3">3 · Buena</option>
+          <option value="2">2 · Regular</option>
+          <option value="1">1 · Mala</option>
+        </select></label>
+        <label class="span-2">Texto de la reseña *<textarea name="text" rows="3" required placeholder="Lo que escribió la persona, tal cual"></textarea></label>
+        <label>Origen<select name="source">
+          <option value="Google">Google</option>
+          <option value="Tienda">Tienda</option>
+        </select></label>
+        <label>Fecha<input name="date" type="date"><small>Opcional. Si queda vacía no se muestra ninguna fecha.</small></label>
+        <label class="checkbox span-2"><input name="published" type="checkbox" checked> Mostrar esta reseña en la tienda</label>
+      </div>
+      <div class="modal-actions"><button class="button button-outline" data-close-modal type="button">Cancelar</button><button class="button button-primary" type="submit">Guardar reseña</button></div>
     </form>
   </section>
 

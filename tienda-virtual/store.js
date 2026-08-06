@@ -45,6 +45,11 @@
     address: "Humberto Primero 1166, Concordia, Entre Ríos",
     domain: "aberturasaluminioconcordia.com.ar",
     googleMaps: "https://www.google.com/maps/place/Aberturas+Aluminio+Concordia/@-31.3856425,-58.0291929,17z/data=!4m6!3m5!1s0x95ade9f644cd8723:0x7268e4ad6931cc87!8m2!3d-31.3856425!4d-58.0291929!16s%2Fg%2F11fl7tw509",
+    /* Abre directo el formulario de reseña de Google, sin pasar por la ficha.
+       El `placeid` sale del identificador que ya está en googleMaps: es el
+       protobuf de `0x95ade9f644cd8723:0x7268e4ad6931cc87` en base64url.
+       Si queda vacío, el botón cae a la ficha de Maps. */
+    googleReview: "https://search.google.com/local/writereview?placeid=ChIJI4fNRPbprZURh8wxaa3kaHI",
   };
 
   /* Reseñas: son las que el negocio tiene en Google Maps, copiadas a mano.
@@ -362,7 +367,10 @@
   function getFaqs() {
     try {
       const saved = JSON.parse(localStorage.getItem(FAQ_KEY));
-      return Array.isArray(saved) && saved.length ? saved.map(normalizeFaqGroup) : clone(defaultFaqs);
+      // Una lista vacía guardada es una decisión del negocio —borró todos los
+      // grupos desde el panel— y no se pisa. Los valores de fábrica salen solo
+      // cuando la clave no existe. Mismo criterio que en getReviews().
+      return Array.isArray(saved) ? saved.map(normalizeFaqGroup) : clone(defaultFaqs);
     } catch {
       return clone(defaultFaqs);
     }
@@ -467,9 +475,12 @@
 
   function addOrder(order) {
     const orders = getOrders();
+    /* El número sale del más alto que haya, no de la cantidad: contando, al
+       borrar un pedido el siguiente repetía el número de uno existente. */
+    const ultimo = orders.reduce((mayor, item) => Math.max(mayor, Number(String(item.numero).replace(/\D/g, "")) || 0), 0);
     const registro = {
       id: globalThis.crypto?.randomUUID?.() || `ped-${Date.now()}`,
-      numero: `#${String(orders.length + 1).padStart(4, "0")}`,
+      numero: `#${String(ultimo + 1).padStart(4, "0")}`,
       fecha: new Date().toISOString(),
       estado: ORDER_STATES[0],
       cliente: order.cliente,

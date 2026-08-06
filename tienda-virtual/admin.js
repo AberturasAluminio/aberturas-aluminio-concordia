@@ -4,6 +4,8 @@ const adminState = {
   editingImages: [],
   deliveryZones: Store.getDeliveryZones(),
   commerceContent: Store.getCommerceContent(),
+  faqs: Store.getFaqs(),
+  reviews: Store.getReviews(),
   preview: null,
   currentOrder: null,
 };
@@ -41,6 +43,8 @@ function renderAll() {
   renderTable();
   renderDeliveryZones();
   renderOrders();
+  renderFaqGroups();
+  renderReviews();
 }
 
 /* ---------- Pedidos ---------- */
@@ -602,6 +606,183 @@ $("#reset-content").addEventListener("click", () => {
   showToast("Textos restaurados");
 });
 
+/* ---------- Preguntas frecuentes ----------
+   Se editan por grupo: el grupo trae su título, su ícono y la lista de
+   preguntas. Los íconos disponibles son los que dibuja app.js. */
+const faqIconLabels = { producto: "Producto", envio: "Envío", pago: "Pago", medida: "Medida" };
+
+function renderFaqGroups() {
+  const groups = adminState.faqs;
+  const preguntas = groups.reduce((sum, group) => sum + group.items.length, 0);
+  $("#faq-count").textContent = `${groups.length} grupo${groups.length === 1 ? "" : "s"} · ${preguntas} pregunta${preguntas === 1 ? "" : "s"}`;
+  $("#faq-empty").hidden = groups.length > 0;
+  $("#faq-table").innerHTML = groups.map((group) => `
+    <tr>
+      <td><strong>${esc(group.title)}</strong></td>
+      <td><small>${esc(faqIconLabels[group.icon] || faqIconLabels.producto)}</small></td>
+      <td><ul class="faq-preview">${group.items.map((item) => `<li>${esc(item.q)}</li>`).join("")}</ul></td>
+      <td><div class="table-actions"><button data-edit-faq="${esc(group.id)}" type="button">Editar</button><button class="delete" data-delete-faq="${esc(group.id)}" type="button">Eliminar</button></div></td>
+    </tr>`).join("");
+}
+
+function faqItemRow(item = { q: "", a: "" }) {
+  return `<div class="faq-item-row">
+    <div class="faq-item-fields">
+      <input data-faq-question value="${esc(item.q)}" placeholder="¿Realizan envíos?" required>
+      <textarea data-faq-answer rows="2" placeholder="La respuesta que ve el visitante" required>${esc(item.a)}</textarea>
+    </div>
+    <button data-remove-faq-item type="button" aria-label="Quitar pregunta">×</button>
+  </div>`;
+}
+
+function openFaqEditor(id = "") {
+  const group = adminState.faqs.find((item) => item.id === id);
+  const form = $("#faq-form");
+  form.reset();
+  $("#faq-editor-title").textContent = group ? "Editar grupo" : "Nuevo grupo";
+  form.elements.originalId.value = group?.id || "";
+  form.elements.title.value = group?.title || "";
+  form.elements.icon.value = group?.icon || "producto";
+  $("#faq-item-rows").innerHTML = (group?.items.length ? group.items : [{ q: "", a: "" }]).map(faqItemRow).join("");
+  openModal("#faq-editor");
+}
+
+function saveFaqGroups() {
+  Store.saveFaqs(adminState.faqs);
+  adminState.faqs = Store.getFaqs();   // se relee normalizado, como hace el catálogo
+  renderFaqGroups();
+}
+
+$("#new-faq-group").addEventListener("click", () => openFaqEditor());
+$("#add-faq-item").addEventListener("click", () => $("#faq-item-rows").insertAdjacentHTML("beforeend", faqItemRow()));
+$("#faq-item-rows").addEventListener("click", (event) => {
+  const remove = event.target.closest("[data-remove-faq-item]");
+  if (!remove) return;
+  if ($("#faq-item-rows").children.length === 1) return showToast("El grupo debe tener al menos una pregunta");
+  remove.closest(".faq-item-row").remove();
+});
+$("#faq-table").addEventListener("click", (event) => {
+  const edit = event.target.closest("[data-edit-faq]");
+  const remove = event.target.closest("[data-delete-faq]");
+  if (edit) openFaqEditor(edit.dataset.editFaq);
+  if (remove) {
+    const group = adminState.faqs.find((item) => item.id === remove.dataset.deleteFaq);
+    if (group && confirm(`¿Eliminar el grupo "${group.title}" y sus ${group.items.length} preguntas?`)) {
+      adminState.faqs = adminState.faqs.filter((item) => item.id !== group.id);
+      saveFaqGroups();
+      showToast("Grupo eliminado");
+    }
+  }
+});
+$("#faq-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(event.target));
+  const items = [...$("#faq-item-rows").querySelectorAll(".faq-item-row")].map((row) => ({
+    q: row.querySelector("[data-faq-question]").value,
+    a: row.querySelector("[data-faq-answer]").value,
+  }));
+  const id = data.originalId || `faq-${Date.now()}`;
+  const index = adminState.faqs.findIndex((item) => item.id === id);
+  const group = { id, icon: data.icon, title: data.title, items };
+  if (index >= 0) adminState.faqs[index] = group;
+  else adminState.faqs.push(group);
+  saveFaqGroups();
+  closeModals();
+  showToast("Grupo guardado. Recargá la tienda para verlo.");
+});
+$("#reset-faqs").addEventListener("click", () => {
+  if (!confirm("¿Restaurar las preguntas originales? Se pierden los cambios que hayas hecho.")) return;
+  adminState.faqs = Store.defaultFaqs;
+  saveFaqGroups();
+  showToast("Preguntas restauradas");
+});
+
+/* ---------- Reseñas ---------- */
+const estrellas = (rating) => "★".repeat(rating) + "☆".repeat(5 - rating);
+
+function renderReviews() {
+  const reviews = adminState.reviews;
+  const publicadas = reviews.filter((review) => review.published).length;
+  $("#reviews-count").textContent = `${publicadas} publicada${publicadas === 1 ? "" : "s"} de ${reviews.length}`;
+  $("#reviews-empty").hidden = reviews.length > 0;
+  $("#reviews-table").innerHTML = reviews.map((review) => `
+    <tr>
+      <td><strong>${esc(review.name)}</strong>${review.date ? `<br><small>${esc(review.date)}</small>` : ""}</td>
+      <td><span class="review-stars" title="${review.rating} de 5">${estrellas(review.rating)}</span></td>
+      <td><small class="review-text">${esc(review.text)}</small></td>
+      <td><small>${esc(review.source)}</small></td>
+      <td><span class="status ${review.published ? "active" : "inactive"}">${review.published ? "Publicada" : "Oculta"}</span></td>
+      <td><div class="table-actions">
+        <button data-edit-review="${esc(review.id)}" type="button">Editar</button>
+        <button data-toggle-review="${esc(review.id)}" type="button">${review.published ? "Ocultar" : "Publicar"}</button>
+        <button class="delete" data-delete-review="${esc(review.id)}" type="button">Eliminar</button>
+      </div></td>
+    </tr>`).join("");
+}
+
+function openReviewEditor(id = "") {
+  const review = adminState.reviews.find((item) => item.id === id);
+  const form = $("#review-form");
+  form.reset();
+  $("#review-editor-title").textContent = review ? "Editar reseña" : "Nueva reseña";
+  form.elements.originalId.value = review?.id || "";
+  form.elements.name.value = review?.name || "";
+  form.elements.rating.value = String(review?.rating || 5);
+  form.elements.text.value = review?.text || "";
+  form.elements.source.value = review?.source || "Google";
+  form.elements.date.value = review?.date || "";
+  form.elements.published.checked = review?.published !== false;
+  openModal("#review-editor");
+}
+
+function saveReviews() {
+  Store.saveReviews(adminState.reviews);
+  adminState.reviews = Store.getReviews();
+  renderReviews();
+}
+
+$("#new-review").addEventListener("click", () => openReviewEditor());
+$("#reviews-table").addEventListener("click", (event) => {
+  const edit = event.target.closest("[data-edit-review]");
+  const toggle = event.target.closest("[data-toggle-review]");
+  const remove = event.target.closest("[data-delete-review]");
+  if (edit) openReviewEditor(edit.dataset.editReview);
+  if (toggle) {
+    const review = adminState.reviews.find((item) => item.id === toggle.dataset.toggleReview);
+    if (review) {
+      review.published = !review.published;
+      saveReviews();
+      showToast(review.published ? "Reseña publicada" : "Reseña oculta");
+    }
+  }
+  if (remove) {
+    const review = adminState.reviews.find((item) => item.id === remove.dataset.deleteReview);
+    if (review && confirm(`¿Eliminar la reseña de ${review.name}? No se puede deshacer.`)) {
+      adminState.reviews = adminState.reviews.filter((item) => item.id !== review.id);
+      saveReviews();
+      showToast("Reseña eliminada");
+    }
+  }
+});
+$("#review-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(event.target));
+  const id = data.originalId || `res-${Date.now()}`;
+  const index = adminState.reviews.findIndex((item) => item.id === id);
+  const review = { ...data, id, published: event.target.elements.published.checked };
+  if (index >= 0) adminState.reviews[index] = review;
+  else adminState.reviews.push(review);
+  saveReviews();
+  closeModals();
+  showToast("Reseña guardada. Recargá la tienda para verla.");
+});
+$("#reset-reviews").addEventListener("click", () => {
+  if (!confirm("¿Restaurar las reseñas originales? Se pierden los cambios que hayas hecho.")) return;
+  adminState.reviews = Store.defaultReviews;
+  saveReviews();
+  showToast("Reseñas restauradas");
+});
+
 /* ---------- Copia de seguridad ---------- */
 $("#export-backup").addEventListener("click", () => {
   const datos = Store.exportBackup();
@@ -639,6 +820,8 @@ $("#import-backup").addEventListener("click", () => {
       adminState.products = Store.getProducts();
       adminState.deliveryZones = Store.getDeliveryZones();
       adminState.commerceContent = Store.getCommerceContent();
+      adminState.faqs = Store.getFaqs();
+      adminState.reviews = Store.getReviews();
       cargarTextosEnFormulario();
       cargarConfiguracionEnFormulario();
       renderAll();

@@ -21,6 +21,14 @@
   const uint16 = (output, value) => output.push(value & 255, (value >>> 8) & 255);
   const uint32 = (output, value) => output.push(value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255);
 
+  /* Se copia byte a byte y no con `push(...bytes)`: desparramar un array
+     grande como argumentos desborda la pila. Con `push(...)` el Excel dejaba
+     de descargarse pasadas unas 250 filas, que en este rubro se alcanzan con
+     pocos productos porque cada medida ocupa su propia fila. */
+  const pushAll = (target, source) => {
+    for (let i = 0; i < source.length; i += 1) target.push(source[i]);
+  };
+
   function zipStore(files) {
     const encoder = new TextEncoder();
     const output = [];
@@ -33,20 +41,20 @@
       const local = [];
       uint32(local, 0x04034b50); uint16(local, 20); uint16(local, 0); uint16(local, 0); uint16(local, 0); uint16(local, 0);
       uint32(local, crc); uint32(local, data.length); uint32(local, data.length); uint16(local, name.length); uint16(local, 0);
-      output.push(...local, ...name, ...data);
+      pushAll(output, local); pushAll(output, name); pushAll(output, data);
       const entry = [];
       uint32(entry, 0x02014b50); uint16(entry, 20); uint16(entry, 20); uint16(entry, 0); uint16(entry, 0); uint16(entry, 0); uint16(entry, 0);
       uint32(entry, crc); uint32(entry, data.length); uint32(entry, data.length); uint16(entry, name.length); uint16(entry, 0); uint16(entry, 0);
       uint16(entry, 0); uint16(entry, 0); uint32(entry, 0); uint32(entry, offset);
-      central.push(...entry, ...name);
+      pushAll(central, entry); pushAll(central, name);
       offset = output.length;
     });
     const centralOffset = output.length;
-    output.push(...central);
+    pushAll(output, central);
     const end = [];
     uint32(end, 0x06054b50); uint16(end, 0); uint16(end, 0); uint16(end, files.length); uint16(end, files.length);
     uint32(end, central.length); uint32(end, centralOffset); uint16(end, 0);
-    output.push(...end);
+    pushAll(output, end);
     return new Uint8Array(output);
   }
 
