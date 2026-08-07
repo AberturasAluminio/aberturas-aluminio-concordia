@@ -52,6 +52,12 @@ function applyCommerceContent() {
     const value = content[element.dataset.content];
     if (value !== undefined) element.textContent = value;
   });
+  // Igual que el anterior pero para imágenes: el valor es la dirección de la
+  // foto, no un texto. Si queda vacío se conserva la que trae el HTML.
+  document.querySelectorAll("[data-content-src]").forEach((element) => {
+    const value = content[element.dataset.contentSrc];
+    if (value) element.src = value;
+  });
   // Los pasos salen del texto editable del panel, separados por "|".
   if ($("#purchase-flow")) {
     const flow = String(content.purchaseFlow || "").split("|").map((item) => item.trim()).filter(Boolean);

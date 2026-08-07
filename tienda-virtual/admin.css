@@ -343,6 +343,59 @@ tr:hover td { background: var(--surface); }
 .order-flete label { margin: 0 !important; }
 .order-flete input { min-height: 40px; width: 150px; }
 
+/* ---------- Flete opcional ---------- */
+/* Prender el flete es una decisión normal, no una advertencia: el rojo que
+   .chip-check usa para el filtro de deuda acá diría lo que no es. */
+.flete-switch:has(input:checked) { color: var(--blue); border-color: var(--blue); background: var(--blue-tint); }
+.flete-campos { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.flete-campos[hidden] { display: none; }
+.flete-bloque { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.flete-bloque .flete-campos label { margin: 0 !important; }
+
+/* ---------- Entrega parcial ---------- */
+.entrega-estado { margin: 0 0 12px; color: var(--ink-soft); font-size: 12.5px; }
+.entrega-estado strong { color: var(--ink); }
+.link-button {
+  margin-left: 10px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--blue);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.order-items-entrega th {
+  padding-bottom: 8px;
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-align: left;
+  text-transform: uppercase;
+}
+.entrega-cell { white-space: nowrap; }
+.entrega-cell input { width: 68px; min-height: 34px; }
+.entrega-cell small { display: block; margin-top: 3px; font-size: 11px; }
+.entrega-ok { color: var(--wa); }
+.entrega-falta { color: var(--orange-dark); font-weight: 600; }
+.estado-entrega-parcial { border-color: var(--orange); color: var(--orange-dark); }
+
+/* ---------- Imagen del banner ---------- */
+.banner-uploader { display: flex; flex-direction: column; gap: 10px; }
+.banner-label { color: var(--ink-mid); font-size: 12px; font-weight: 600; }
+#hero-preview {
+  width: 100%;
+  max-height: 210px;
+  object-fit: cover;
+  background: var(--surface-alt);
+  border: 1px solid var(--line);
+}
+.banner-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.banner-actions label { margin: 0 !important; }
+.banner-uploader small { color: var(--ink-soft); font-size: 11.5px; }
+
 .payment-context { margin: 16px 0 4px; padding: 12px 14px; background: var(--blue-tint); font-size: 13px; }
 .payment-net { margin: 10px 0 0; color: #0f6b3f; font-size: 13px; }
 .input-small { width: 100px !important; min-height: 40px; }
@@ -701,4 +754,70 @@ tr:hover td { background: var(--surface); }
   .form-grid { grid-template-columns: 1fr; }
   .span-2 { grid-column: auto; }
   .admin-modal { padding: 20px; }
+}
+
+/* ============================================================
+   Boleta imprimible
+   ------------------------------------------------------------
+   Vive escondida en la pantalla y solo aparece al imprimir: no hay
+   ventana nueva ni librería de PDF. El navegador ofrece la impresora
+   o "Guardar como PDF", que es lo que ella hace igual.
+   ============================================================ */
+#boleta-print { display: none; }
+
+@media print {
+  /* Se esconde el panel entero, incluido el modal abierto y el fondo. */
+  body > *:not(#boleta-print) { display: none !important; }
+  body { background: var(--white); }
+
+  @page { size: A4; margin: 14mm; }
+
+  #boleta-print { display: block; color: #000; font-size: 11.5px; }
+  #boleta-print h1, #boleta-print h2 { margin: 0; }
+
+  .boleta-head {
+    padding-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    border-bottom: 2px solid #000;
+  }
+  .boleta-negocio strong { display: block; font-size: 16px; }
+  .boleta-negocio span, .boleta-num span { display: block; font-size: 11px; }
+  .boleta-num { text-align: right; }
+  .boleta-num strong { display: block; font-size: 14px; }
+
+  .boleta-cliente { margin: 14px 0; }
+  .boleta-cliente p { margin: 0 0 4px; }
+
+  .boleta-items { width: 100%; border-collapse: collapse; }
+  .boleta-items th, .boleta-items td { padding: 7px 6px; border-bottom: 1px solid #bbb; text-align: left; }
+  .boleta-items th { border-bottom: 1px solid #000; font-size: 10px; text-transform: uppercase; }
+  .boleta-items small { color: #555; font-size: 10px; }
+  .boleta-items .price-cell { text-align: right; white-space: nowrap; }
+  .boleta-items tfoot td { border-bottom: 0; text-align: right; }
+  .boleta-items tfoot td[colspan] { text-align: right; }
+  .boleta-total td { padding-top: 10px; border-top: 1px solid #000; font-size: 13px; font-weight: 700; }
+  .boleta-saldo td { font-weight: 700; }
+
+  .boleta-pagos { margin-top: 16px; }
+  .boleta-pagos h2 { font-size: 11px; text-transform: uppercase; }
+  .boleta-pagos ul { margin: 6px 0 0; padding-left: 16px; }
+
+  .boleta-pendiente {
+    margin-top: 14px;
+    padding: 8px 10px;
+    border: 1px solid #000;
+  }
+
+  .boleta-pie { margin-top: 34px; }
+  .boleta-firmas { display: flex; gap: 60px; }
+  .boleta-firmas span {
+    padding-top: 6px;
+    flex: 1;
+    border-top: 1px solid #000;
+    font-size: 10px;
+    text-align: center;
+  }
+  .boleta-pie p { margin: 20px 0 0; font-size: 10px; text-align: center; }
 }

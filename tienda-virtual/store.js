@@ -68,6 +68,9 @@
     heroTitle: "Aberturas",
     heroSubtitle: "Listas para instalar",
     heroLead: "Descubrí nuestra línea de productos estándar",
+    // La foto grande de la portada. Es una ruta del sitio hasta que el panel
+    // sube otra, y ahí pasa a ser una URL de Supabase Storage.
+    heroImage: "assets/hero-ambiente.webp",
     heroBadge1: "Envíos a toda la región",
     heroBadge2: "Abonás como prefieras",
     heroBadge3: "Medidas estándar",
@@ -160,7 +163,10 @@
     footerCredit: "Creado por Sistemas Umbral",
   };
 
-  const ORDER_STATES = ["Nuevo", "Confirmado", "Entregado", "Cancelado"];
+  const ORDER_STATES = ["Nuevo", "Confirmado", "Entrega parcial", "Entregado", "Cancelado"];
+  /* Los que se eligen de una lista. "Entrega parcial" no está a propósito: sale
+     de marcar cuánto se entregó de cada producto, no de elegirlo a mano. */
+  const MANUAL_ORDER_STATES = ["Nuevo", "Confirmado", "Entregado", "Cancelado"];
   const PAYMENT_STATES = ["Sin cobrar", "Parcial", "Pagado"];
 
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -351,13 +357,16 @@
         direccion: fila.address || "",
         comentarios: fila.comments || "",
       },
-      items: (fila.order_items || []).map((i) => ({
+      // En el orden en que se cargaron: la base no garantiza ninguno y sin esto
+      // las líneas se reacomodaban solas entre una recarga y otra.
+      items: (fila.order_items || []).slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((i) => ({
         id: i.id,
         variantId: i.variant_id,
         code: i.product_code,
         name: i.product_name,
         opciones: i.options,
         cantidad: i.quantity,
+        entregado: Number(i.delivered_quantity) || 0,
         precio: numero(i.unit_price),
         costo: numero(i.unit_cost),
       })),
@@ -386,6 +395,15 @@
       aCotizar: fila.to_quote === true,
     };
   }
+
+  /* Cuánto se entregó y cuánto falta, en unidades. El pedido se cobra entero
+     desde el día uno —el saldo no depende de la entrega— así que esto es una
+     cuenta aparte de la del dinero. */
+  const resumenEntrega = (order) => {
+    const pedidas = order.items.reduce((sum, item) => sum + item.cantidad, 0);
+    const entregadas = order.items.reduce((sum, item) => sum + item.entregado, 0);
+    return { pedidas, entregadas, pendientes: pedidas - entregadas };
+  };
 
   async function cargarMediosDePago() {
     // Son datos del negocio: al visitante la base se los niega, así que ni se
@@ -821,7 +839,7 @@
       .single();
     if (avisarError("cargar venta del local", error)) return null;
 
-    const filas = (items || []).map((item) => ({
+    const filas = (items || []).map((item, i) => ({
       order_id: pedido.id,
       variant_id: item.variantId || null,
       product_code: item.code || "",
@@ -829,12 +847,17 @@
       options: item.opciones || "",
       quantity: Number(item.cantidad) || 1,
       unit_price: item.precio === null || item.precio === "" ? null : Number(item.precio),
+      sort_order: i,
     }));
     if (filas.length) {
       const { error: errorItems } = await db.from("order_items").insert(filas);
       if (avisarError("cargar los productos de la venta", errorItems)) return null;
     }
-    if (ORDER_STATES.includes(estado) && estado !== "Nuevo") {
+    if (estado === "Entregado") {
+      // Entregar es marcar las líneas: es lo que descuenta el stock.
+      const { error: errorEntrega } = await db.rpc("set_order_delivery", { p_order: pedido.id, p_full: true });
+      avisarError("marcar la venta como entregada", errorEntrega);
+    } else if (MANUAL_ORDER_STATES.includes(estado) && estado !== "Nuevo") {
       const { error: errorEstado } = await db.from("orders").update({ delivery_status: estado }).eq("id", pedido.id);
       avisarError("marcar el estado de la venta", errorEstado);
     }
@@ -860,11 +883,12 @@
      - El cobro se registra con la fecha de la planilla, no con la de hoy, así
        el resumen de cada mes cierra con lo que de verdad entró ese mes. */
   async function addImportedOrder(pedido) {
+    const estado = MANUAL_ORDER_STATES.includes(pedido.estado) ? pedido.estado : "Entregado";
     const { data: fila, error } = await db
       .from("orders")
       .insert({
         channel: "local",
-        delivery_status: ORDER_STATES.includes(pedido.estado) ? pedido.estado : "Entregado",
+        delivery_status: estado,
         customer_name: pedido.cliente || "",
         customer_phone: pedido.telefono || "",
         delivery_mode: pedido.modo || "",
@@ -879,7 +903,7 @@
       .single();
     if (avisarError("importar el pedido", error)) return null;
 
-    const items = (pedido.items || []).map((item) => ({
+    const items = (pedido.items || []).map((item, i) => ({
       order_id: fila.id,
       variant_id: item.variantId || null,
       product_code: item.code || "",
@@ -887,6 +911,11 @@
       options: item.opciones || "",
       quantity: Number(item.cantidad) || 1,
       unit_price: Number(item.precio) || 0,
+      sort_order: i,
+      /* Nace entregada, y por eso mismo no mueve el stock: el trigger de la base
+         solo reacciona al CAMBIO de lo entregado, nunca al alta. Es una venta
+         que ya ocurrió y cuyo inventario la realidad ya descontó. */
+      delivered_quantity: estado === "Entregado" ? (Number(item.cantidad) || 1) : 0,
     }));
     if (items.length) {
       const { error: errorItems } = await db.from("order_items").insert(items);
@@ -919,9 +948,42 @@
     return numeros;
   }
 
+  /* El estado de entrega ya no se escribe a mano: lo calcula la base a partir de
+     cuánto se entregó de cada línea, y el stock sale de ahí. Marcar el pedido
+     entero es marcar todas sus líneas de una. */
   async function updateOrderState(id, estado) {
-    const { error } = await db.from("orders").update({ delivery_status: estado }).eq("id", id);
-    if (avisarError("cambiar el estado del pedido", error)) return false;
+    /* No se elige: es el resultado de tener algunas líneas entregadas y otras
+       no. Aceptarlo acá dejaría el pedido en "Entrega parcial" sin nada
+       entregado, que es justo la contradicción que este diseño evita. */
+    if (estado === "Entrega parcial") return true;
+    if (estado === "Entregado") {
+      /* Un pedido cancelado no deja que sus líneas le cambien el estado —si no,
+         cualquier retoque lo resucitaría solo—, así que primero sale de
+         cancelado y recién después se marca la entrega. */
+      const { error: errorPrevio } = await db.from("orders")
+        .update({ delivery_status: "Confirmado" }).eq("id", id).eq("delivery_status", "Cancelado");
+      if (avisarError("reabrir el pedido cancelado", errorPrevio)) return false;
+      const { error } = await db.rpc("set_order_delivery", { p_order: id, p_full: true });
+      if (avisarError("marcar el pedido como entregado", error)) return false;
+    } else {
+      // Nuevo, Confirmado y Cancelado significan que no hay nada entregado:
+      // desmarcar las líneas es lo que devuelve el stock.
+      const { error } = await db.rpc("set_order_delivery", { p_order: id, p_full: false });
+      if (avisarError("desmarcar la entrega del pedido", error)) return false;
+      const { error: errorEstado } = await db.from("orders").update({ delivery_status: estado }).eq("id", id);
+      if (avisarError("cambiar el estado del pedido", errorEstado)) return false;
+    }
+    await recargarPedidosYCatalogo();
+    return true;
+  }
+
+  /* Entrega parcial: cuántas unidades de esta línea salieron. La base ajusta el
+     stock por la diferencia y recalcula el estado del pedido. */
+  async function setItemDelivered(itemId, cantidad) {
+    const { error } = await db.from("order_items")
+      .update({ delivered_quantity: Math.max(0, Math.floor(Number(cantidad) || 0)) })
+      .eq("id", itemId);
+    if (avisarError("marcar la entrega del producto", error)) return false;
     await recargarPedidosYCatalogo();
     return true;
   }
@@ -992,6 +1054,23 @@
     }
     await cargarMediosDePago();
     return true;
+  }
+
+  /* ---------- Imágenes ---------- */
+
+  /* Sube la imagen al bucket y devuelve su URL. Lo importante es lo que NO hace:
+     no la guarda dentro de la fila. Una foto en base64 dentro de `commerce_content`
+     viajaría entera en cada visita a cada página del sitio, porque el contenido
+     lo carga el encabezado común. Así, el navegador la baja aparte y la cachea. */
+  async function uploadMedia(file, carpeta = "banner") {
+    const extension = ({ "image/png": "png", "image/webp": "webp" })[file.type] || "jpg";
+    const ruta = `${carpeta}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
+    const { error } = await db.storage.from("medios").upload(ruta, file, {
+      cacheControl: "31536000",
+      contentType: file.type,
+    });
+    if (avisarError("subir la imagen", error)) return null;
+    return db.storage.from("medios").getPublicUrl(ruta).data.publicUrl;
   }
 
   /* ---------- Utilidades que ya usaba el resto de la aplicación ---------- */
@@ -1136,13 +1215,17 @@
     getBuyer,
     saveBuyer,
     ORDER_STATES,
+    MANUAL_ORDER_STATES,
     PAYMENT_STATES,
     getOrders,
+    resumenEntrega,
     addOrder,
     addLocalOrder,
     importOrders,
     updateOrderState,
+    setItemDelivered,
     updateOrder,
+    uploadMedia,
     deleteOrder,
     addPayment,
     deletePayment,

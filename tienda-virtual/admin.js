@@ -113,8 +113,11 @@ function renderOrders() {
       <td class="price-cell ${conSaldo(order) ? "saldo-debe" : ""}">${money.format(order.saldo)}</td>
       <td><span class="pago-badge pago-${normalizeHeader(order.estadoPago).replace(/ /g, "-")}">${esc(order.estadoPago)}</span></td>
       <td>
-        <select class="estado-select estado-${normalizeHeader(order.estado)}" data-order-state="${esc(order.id)}">
-          ${Store.ORDER_STATES.map((estado) => `<option value="${esc(estado)}" ${estado === order.estado ? "selected" : ""}>${esc(estado)}</option>`).join("")}
+        <select class="estado-select estado-${normalizeHeader(order.estado).replace(/ /g, "-")}" data-order-state="${esc(order.id)}">
+          ${Store.MANUAL_ORDER_STATES.map((estado) => `<option value="${esc(estado)}" ${estado === order.estado ? "selected" : ""}>${esc(estado)}</option>`).join("")}
+          ${/* Se muestra pero no se elige: sale de marcar cuánto se entregó de cada
+                producto, en el detalle del pedido. */""}
+          ${order.estado === "Entrega parcial" ? '<option value="Entrega parcial" selected disabled>Entrega parcial</option>' : ""}
         </select>
       </td>
       <td><div class="table-actions">
@@ -132,6 +135,11 @@ function openOrderDetail(id) {
   $("#order-detail-title").textContent = `Pedido ${order.numero}`;
   const c = order.cliente;
   const ganancia = order.mercaderia - order.costoTotal;
+  const entrega = Store.resumenEntrega(order);
+  const cancelado = order.estado === "Cancelado";
+  // El flete se cobra en unos pedidos y en otros no, así que los campos
+  // aparecen recién cuando ella dice que este lo lleva.
+  const cobraFlete = order.flete > 0 || order.fletePorcentaje > 0;
   $("#order-detail-body").innerHTML = `
     <div class="order-meta">
       <span>${esc(fechaCorta(order.fecha))}</span>
@@ -157,15 +165,28 @@ function openOrderDetail(id) {
     </dl>
 
     <h3 class="order-subtitle">Productos</h3>
-    <table class="order-items">
+    <p class="entrega-estado">${entrega.pendientes > 0
+      ? `Faltan entregar <strong>${entrega.pendientes}</strong> de ${entrega.pedidas} unidades.`
+      : `Entregado todo: ${entrega.pedidas} unidad${entrega.pedidas === 1 ? "" : "es"}.`}
+      ${cancelado ? "" : `<button class="link-button" id="order-deliver-all" type="button">${entrega.pendientes > 0 ? "Entregar todo" : "Marcar como no entregado"}</button>`}</p>
+    <table class="order-items order-items-entrega">
+      <thead><tr><th>Producto</th><th>Cant.</th><th>Entregado</th><th>Importe</th></tr></thead>
       <tbody>
         ${order.items.map((item) => `<tr>
           <td><strong>${esc(item.name)}</strong><br><small>${esc(item.code)}${item.opciones ? ` · ${esc(item.opciones)}` : ""}</small></td>
           <td>${item.cantidad}</td>
+          <td class="entrega-cell">
+            <input class="input-small" type="number" min="0" max="${item.cantidad}" step="1"
+                   value="${item.entregado}" data-item-delivered="${esc(item.id)}" ${cancelado ? "disabled" : ""}
+                   aria-label="Unidades entregadas de ${esc(item.name)}">
+            ${item.entregado >= item.cantidad
+              ? '<small class="entrega-ok">completo</small>'
+              : `<small class="entrega-falta">faltan ${item.cantidad - item.entregado}</small>`}
+          </td>
           <td class="price-cell">${item.precio === null ? '<em class="a-cotizar">A cotizar</em>' : money.format(item.precio * item.cantidad)}</td>
         </tr>`).join("")}
-        <tr class="order-items-sum"><td>Mercadería</td><td></td><td class="price-cell">${money.format(order.mercaderia)}</td></tr>
-        ${order.fleteTotal ? `<tr class="order-items-sum"><td>Flete${order.fletePorcentaje ? ` (${order.fletePorcentaje}%${order.flete ? " + monto fijo" : ""})` : ""}</td><td></td><td class="price-cell">${money.format(order.fleteTotal)}</td></tr>` : ""}
+        <tr class="order-items-sum"><td>Mercadería</td><td colspan="2"></td><td class="price-cell">${money.format(order.mercaderia)}</td></tr>
+        ${order.fleteTotal ? `<tr class="order-items-sum"><td>Flete${order.fletePorcentaje ? ` (${order.fletePorcentaje}%${order.flete ? " + monto fijo" : ""})` : ""}</td><td colspan="2"></td><td class="price-cell">${money.format(order.fleteTotal)}</td></tr>` : ""}
       </tbody>
     </table>
     <p class="order-total">Total: <strong>${money.format(order.total)}</strong>${order.aCotizar ? ' <em class="a-cotizar">+ lo que falta cotizar</em>' : ""}</p>
@@ -173,8 +194,11 @@ function openOrderDetail(id) {
 
     <h3 class="order-subtitle">Flete</h3>
     <form class="order-flete" id="order-shipping-form">
-      <label>Monto fijo<input name="flete" type="number" min="0" step="0.01" value="${order.flete || ""}" placeholder="0"></label>
-      <label>% sobre la mercadería<input name="fletePorcentaje" type="number" min="0" max="100" step="0.01" value="${order.fletePorcentaje || ""}" placeholder="0"></label>
+      <label class="chip-check flete-switch"><input name="cobra" type="checkbox" ${cobraFlete ? "checked" : ""}> Cobrar flete en este pedido</label>
+      <div class="flete-campos" id="order-shipping-fields" ${cobraFlete ? "" : "hidden"}>
+        <label>Monto fijo<input name="flete" type="number" min="0" step="0.01" value="${order.flete || ""}" placeholder="0"></label>
+        <label>% sobre la mercadería<input name="fletePorcentaje" type="number" min="0" max="100" step="0.01" value="${order.fletePorcentaje || ""}" placeholder="0"><small>Se pueden usar los dos: se suman.</small></label>
+      </div>
       <button class="button button-outline button-small" type="submit">Guardar flete</button>
     </form>
 
@@ -193,6 +217,75 @@ function openOrderDetail(id) {
   $("#order-pay-all").hidden = !conSaldo(order);
   $("#order-add-payment").hidden = order.estado === "Cancelado";
   openModal("#order-detail");
+}
+
+/* ---------- Boleta imprimible ---------- */
+
+/* Se arma en un contenedor propio y se manda a imprimir: el navegador ofrece la
+   impresora o "Guardar como PDF". No lleva librería a propósito —una hoja
+   maquetada con CSS imprime mejor que un PDF armado a mano, y ella lo que
+   quiere es imprimirla—.
+
+   No es un comprobante fiscal y lo dice: para una factura válida hace falta
+   facturación electrónica de ARCA, que es otra cosa. */
+function imprimirBoleta(order) {
+  const s = Store.getSettings();
+  const entrega = Store.resumenEntrega(order);
+  const totalLinea = (etiqueta, valor, clase = "") =>
+    `<tr class="${clase}"><td colspan="3">${etiqueta}</td><td class="price-cell">${money.format(valor)}</td></tr>`;
+
+  $("#boleta-print").innerHTML = `
+    <header class="boleta-head">
+      <div class="boleta-negocio">
+        <strong>${esc(s.name)}</strong>
+        <span>${esc(s.address)}</span>
+        <span>${esc(s.email)}${s.whatsapp ? ` · +${esc(s.whatsapp)}` : ""}</span>
+      </div>
+      <div class="boleta-num">
+        <strong>Pedido ${esc(order.numero)}</strong>
+        <span>${esc(fechaCorta(order.fecha))}</span>
+        <span>${esc(order.estado)} · ${esc(order.estadoPago)}</span>
+      </div>
+    </header>
+
+    <section class="boleta-cliente">
+      <p><b>Cliente:</b> ${esc(order.cliente.nombre) || "—"}${order.cliente.telefono ? ` · ${esc(order.cliente.telefono)}` : ""}</p>
+      <p><b>Entrega:</b> ${esc(order.cliente.modo) || "—"}${order.cliente.localidad ? ` · ${esc(order.cliente.localidad)}` : ""}${order.cliente.direccion ? ` · ${esc(order.cliente.direccion)}` : ""}</p>
+    </section>
+
+    <table class="boleta-items">
+      <thead><tr><th>Producto</th><th>Cant.</th><th>Entregado</th><th>Importe</th></tr></thead>
+      <tbody>
+        ${order.items.map((item) => `<tr>
+          <td>${esc(item.name)}<br><small>${esc(item.code)}${item.opciones ? ` · ${esc(item.opciones)}` : ""}</small></td>
+          <td>${item.cantidad}</td>
+          <td>${item.entregado}${item.entregado < item.cantidad ? `<br><small>faltan ${item.cantidad - item.entregado}</small>` : ""}</td>
+          <td class="price-cell">${item.precio === null ? "A cotizar" : money.format(item.precio * item.cantidad)}</td>
+        </tr>`).join("")}
+      </tbody>
+      <tfoot>
+        ${totalLinea("Mercadería", order.mercaderia)}
+        ${order.fleteTotal ? totalLinea("Flete", order.fleteTotal) : ""}
+        ${totalLinea("Total", order.total, "boleta-total")}
+        ${order.cobrado ? totalLinea("Cobrado", order.cobrado) : ""}
+        ${totalLinea("Saldo", order.saldo, "boleta-saldo")}
+      </tfoot>
+    </table>
+
+    ${order.pagos.length ? `<section class="boleta-pagos">
+      <h2>Cobros registrados</h2>
+      <ul>${order.pagos.map((pago) => `<li>${esc(fechaDia(pago.fecha))} · ${esc(pago.medio || "sin medio")} · ${money.format(pago.monto)}${pago.notas ? ` · ${esc(pago.notas)}` : ""}</li>`).join("")}</ul>
+    </section>` : ""}
+
+    ${entrega.pendientes > 0
+      ? `<p class="boleta-pendiente">Quedan <b>${entrega.pendientes}</b> de ${entrega.pedidas} unidades pendientes de entrega.</p>`
+      : ""}
+
+    <footer class="boleta-pie">
+      <div class="boleta-firmas"><span>Firma del cliente</span><span>Aclaración</span></div>
+      <p>Documento no válido como factura. Comprobante interno de pedido y entrega.</p>
+    </footer>`;
+  window.print();
 }
 
 function ordersToRows() {
@@ -474,8 +567,11 @@ function actualizarTotalLocal() {
   if (!form) return;
   const mercaderia = [...$("#local-item-rows").querySelectorAll(".local-item-row")].reduce((sum, row) =>
     sum + (Number(row.querySelector("[data-local-price]").value) || 0) * (Number(row.querySelector("[data-local-qty]").value) || 0), 0);
-  const flete = Number(form.elements.flete.value) || 0;
-  const porcentaje = Number(form.elements.fletePorcentaje.value) || 0;
+  // Sin el interruptor prendido esta venta no lleva flete, aunque haya quedado
+  // algo escrito en los campos de antes de apagarlo.
+  const cobra = form.elements.cobra.checked;
+  const flete = cobra ? Number(form.elements.flete.value) || 0 : 0;
+  const porcentaje = cobra ? Number(form.elements.fletePorcentaje.value) || 0 : 0;
   const total = mercaderia + flete + (mercaderia * porcentaje) / 100;
   $("#local-order-total").innerHTML = `Mercadería ${money.format(mercaderia)}${total !== mercaderia ? ` · Flete ${money.format(total - mercaderia)}` : ""} · Total <strong>${money.format(total)}</strong>`;
 }
@@ -485,6 +581,7 @@ function openLocalOrderEditor() {
   const form = $("#local-order-form");
   form.reset();
   $("#local-item-rows").innerHTML = localItemRowHTML();
+  $("#local-shipping-fields").hidden = true;
   actualizarTotalLocal();
   openModal("#local-order-editor");
 }
@@ -630,7 +727,7 @@ function closeModals() {
   document.body.classList.remove("locked");
 }
 
-async function optimizeImage(file) {
+async function escalarImagen(file, max) {
   const source = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
@@ -643,13 +740,23 @@ async function optimizeImage(file) {
     element.onerror = reject;
     element.src = source;
   });
-  const max = 1000;
   const scale = Math.min(1, max / Math.max(image.width, image.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(image.width * scale);
   canvas.height = Math.round(image.height * scale);
   canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/jpeg", .82);
+  return canvas;
+}
+
+async function optimizeImage(file) {
+  return (await escalarImagen(file, 1000)).toDataURL("image/jpeg", .82);
+}
+
+/* El banner se sube al bucket como archivo, no como texto en base64: es una foto
+   grande y el contenido del sitio viaja en todas las páginas. */
+async function optimizarABlob(file, max) {
+  const canvas = await escalarImagen(file, max);
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", .84));
 }
 
 function productRows(products = adminState.products) {
@@ -1040,27 +1147,74 @@ $("#payment-form").addEventListener("submit", async (event) => {
 });
 $("#order-detail-body").addEventListener("click", async (event) => {
   const borrar = event.target.closest("[data-payment-delete]");
-  if (!borrar) return;
-  if (!confirm("¿Borrar este cobro? El saldo del pedido vuelve a subir.")) return;
-  const id = adminState.currentOrderId;
-  if (!(await Store.deletePayment(borrar.dataset.paymentDelete))) return showToast("No se pudo borrar el cobro");
-  openOrderDetail(id);
-  renderAll();
-  showToast("Cobro borrado");
+  if (borrar) {
+    if (!confirm("¿Borrar este cobro? El saldo del pedido vuelve a subir.")) return;
+    const id = adminState.currentOrderId;
+    if (!(await Store.deletePayment(borrar.dataset.paymentDelete))) return showToast("No se pudo borrar el cobro");
+    openOrderDetail(id);
+    renderAll();
+    return showToast("Cobro borrado");
+  }
+
+  if (event.target.closest("#order-deliver-all")) {
+    const order = currentOrder();
+    if (!order) return;
+    const entrega = Store.resumenEntrega(order);
+    const entregarTodo = entrega.pendientes > 0;
+    if (!entregarTodo && !confirm("¿Marcar el pedido como no entregado? La mercadería vuelve al stock.")) return;
+    if (!(await Store.updateOrderState(order.id, entregarTodo ? "Entregado" : "Confirmado"))) {
+      return showToast("No se pudo cambiar la entrega");
+    }
+    openOrderDetail(order.id);
+    renderAll();
+    showToast(entregarTodo ? "Pedido entregado" : "Entrega deshecha");
+  }
 });
+
+/* Entrega parcial: cuántas unidades de esta línea salieron. Cada cambio escribe
+   y relee, porque la base ajusta el stock y recalcula el estado del pedido: sin
+   releer, la pantalla mostraría el estado de antes. */
+$("#order-detail-body").addEventListener("change", async (event) => {
+  const campo = event.target.closest("[data-item-delivered]");
+  if (campo) {
+    const order = currentOrder();
+    const item = order?.items.find((linea) => linea.id === campo.dataset.itemDelivered);
+    if (!item) return;
+    const cantidad = Math.min(item.cantidad, Math.max(0, Math.floor(Number(campo.value) || 0)));
+    if (cantidad === item.entregado) return;
+    if (!(await Store.setItemDelivered(item.id, cantidad))) return showToast("No se pudo guardar la entrega");
+    openOrderDetail(order.id);
+    renderAll();
+    return showToast(`${item.name}: ${cantidad} de ${item.cantidad} entregadas`);
+  }
+
+  // El interruptor del flete solo muestra u oculta: guardar es apretar el botón.
+  if (event.target.name === "cobra" && event.target.form?.id === "order-shipping-form") {
+    $("#order-shipping-fields").hidden = !event.target.checked;
+  }
+});
+
 $("#order-detail-body").addEventListener("submit", async (event) => {
   if (event.target.id !== "order-shipping-form") return;
   event.preventDefault();
   const id = adminState.currentOrderId;
   const data = Object.fromEntries(new FormData(event.target));
+  // Sin el interruptor prendido no hay flete: se guarda en cero, no se conserva
+  // lo que hubiera quedado escrito en los campos.
+  const cobra = data.cobra !== undefined;
   const ok = await Store.updateOrder(id, {
-    flete: data.flete === "" ? 0 : data.flete,
-    fletePorcentaje: data.fletePorcentaje === "" ? 0 : data.fletePorcentaje,
+    flete: !cobra || data.flete === "" ? 0 : data.flete,
+    fletePorcentaje: !cobra || data.fletePorcentaje === "" ? 0 : data.fletePorcentaje,
   });
   if (!ok) return showToast("No se pudo guardar el flete");
   openOrderDetail(id);
   renderAll();
-  showToast("Flete guardado");
+  showToast(cobra ? "Flete guardado" : "Este pedido queda sin flete");
+});
+
+$("#order-print").addEventListener("click", () => {
+  const order = currentOrder();
+  if (order) imprimirBoleta(order);
 });
 
 /* ---------- Medios de pago ---------- */
@@ -1114,6 +1268,11 @@ $("#local-item-rows").addEventListener("input", actualizarTotalLocal);
 $("#local-order-form").addEventListener("input", (event) => {
   if (event.target.name === "flete" || event.target.name === "fletePorcentaje") actualizarTotalLocal();
 });
+$("#local-order-form").addEventListener("change", (event) => {
+  if (event.target.name !== "cobra") return;
+  $("#local-shipping-fields").hidden = !event.target.checked;
+  actualizarTotalLocal();
+});
 $("#local-item-rows").addEventListener("click", (event) => {
   const remove = event.target.closest("[data-remove-local-item]");
   if (!remove) return;
@@ -1143,7 +1302,11 @@ $("#local-order-form").addEventListener("submit", async (event) => {
   boton.disabled = true;
   const resultado = await Store.addLocalOrder({
     cliente: { nombre: data.nombre, telefono: data.telefono, modo: data.modo, localidad: data.localidad, direccion: data.direccion },
-    items, notas: data.notas, flete: data.flete, fletePorcentaje: data.fletePorcentaje, estado: data.estado,
+    items,
+    notas: data.notas,
+    flete: data.cobra === undefined ? 0 : data.flete,
+    fletePorcentaje: data.cobra === undefined ? 0 : data.fletePorcentaje,
+    estado: data.estado,
   });
   boton.disabled = false;
   if (!resultado) return showToast("No se pudo guardar la venta");
@@ -1338,6 +1501,40 @@ $("#reset-content").addEventListener("click", () => {
   adminState.commerceContent = Store.getCommerceContent();
   cargarTextosEnFormulario();
   showToast("Textos restaurados");
+});
+
+/* ---------- Imagen del banner ---------- */
+
+/* Se guarda apenas termina de subir, sin esperar al botón de los textos: el
+   archivo ya está en el servidor y dejar el formulario a medias haría que la
+   portada siguiera mostrando la foto vieja sin ninguna razón visible. */
+async function guardarImagenDelBanner(url) {
+  const ok = await Store.saveCommerceContent({ heroImage: url });
+  if (!ok) return showToast("No se pudo guardar la imagen");
+  adminState.commerceContent = Store.getCommerceContent();
+  cargarTextosEnFormulario();
+  showToast("Banner actualizado. Recargá la tienda para verlo.");
+}
+
+$("#hero-file").addEventListener("change", async (event) => {
+  const archivo = event.target.files[0];
+  if (!archivo) return;
+  showToast("Subiendo la imagen…");
+  try {
+    const blob = await optimizarABlob(archivo, 1920);
+    const url = await Store.uploadMedia(blob, "banner");
+    if (!url) return showToast("No se pudo subir la imagen");
+    await guardarImagenDelBanner(url);
+  } catch {
+    showToast("No se pudo leer esa imagen. Probá con un JPG o PNG.");
+  } finally {
+    event.target.value = "";   // deja volver a elegir el mismo archivo
+  }
+});
+
+$("#hero-reset").addEventListener("click", () => {
+  if (!confirm("¿Volver a la imagen original del banner?")) return;
+  guardarImagenDelBanner(Store.defaultCommerceContent.heroImage);
 });
 
 /* ---------- Preguntas frecuentes ----------
@@ -1579,6 +1776,7 @@ function cargarTextosEnFormulario() {
   Object.entries(adminState.commerceContent).forEach(([key, value]) => {
     if (form.elements[key]) form.elements[key].value = value;
   });
+  $("#hero-preview").src = adminState.commerceContent.heroImage || Store.defaultCommerceContent.heroImage;
 }
 
 function cargarConfiguracionEnFormulario() {
