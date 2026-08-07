@@ -1553,6 +1553,25 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue); }
 .payment-icon svg { width: 28px; height: 28px; display: block; }
 .payment-card h3 { font-size: 15px; }
 .payment-card p { margin: 0; color: var(--ink-soft); font-size: 12.5px; line-height: 1.55; }
+/* ---------- Planes de financiación ---------- */
+/* El precio publicado es de contado: el recargo se muestra acá, entero y sin
+   letra chica, para que nadie se entere del número recién en el mostrador. */
+.payment-intro { max-width: 720px; margin: -8px 0 20px; color: var(--ink-mid); font-size: 13.5px; line-height: 1.6; }
+.payment-plans { margin-bottom: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.payment-plan {
+  padding: 24px 22px;
+  display: grid;
+  gap: 4px;
+  background: var(--blue-tint);
+  border: 1px solid var(--blue);
+  border-radius: var(--r);
+  text-align: center;
+}
+.plan-cuotas { color: var(--blue-ink); font-size: 14px; font-weight: 700; }
+.plan-recargo { color: var(--blue); font-size: 32px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+.plan-nota { color: var(--ink-soft); font-size: 12px; }
+.payment-plans-foot { margin: 0 0 40px; color: var(--ink-mid); font-size: 13px; line-height: 1.6; }
+
 .payment-notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .payment-notes article {
   padding: 18px 20px;
@@ -1691,7 +1710,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue); }
   .reviews-foot { flex-direction: column; }
   .review-cta-card { padding: 26px 20px; }
   .faq-summary { gap: 10px; }
-  .payment-grid, .payment-notes { grid-template-columns: 1fr; }
+  .payment-grid, .payment-notes, .payment-plans { grid-template-columns: 1fr; }
   .payment-foot { flex-direction: column; }
   .legal-body h2 { margin-top: 28px; font-size: 16px; }
   .nav-cats-panel { min-width: min(300px, calc(100vw - 32px)); }

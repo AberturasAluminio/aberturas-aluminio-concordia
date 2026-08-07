@@ -161,8 +161,8 @@
     <section class="admin-panel" data-panel="payments">
       <div class="panel-section-heading">
         <div>
-          <p class="overline">Cobranza</p><h2>Medios de pago y comisiones</h2>
-          <p>La comisión se congela en cada cobro: cambiarla acá no toca lo que ya cobraste.</p>
+          <p class="overline">Cobranza</p><h2>Medios de pago, recargos y comisiones</h2>
+          <p>El <strong>recargo</strong> se lo sumás al cliente por financiar. La <strong>comisión</strong> es lo que la tarjeta te retiene a vos. Los dos se congelan en cada cobro: cambiarlos acá no toca lo que ya cobraste.</p>
         </div>
         <div class="content-actions">
           <button class="button button-outline" id="new-payment-method" type="button">+ Agregar medio</button>
@@ -175,7 +175,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Medio de pago</th><th>Comisión %</th><th>De cada $100.000 te quedan</th><th>Activo</th></tr></thead>
+          <thead><tr><th>Medio de pago</th><th>Recargo % <small>al cliente</small></th><th>Comisión % <small>te retienen</small></th><th>Un pedido de $100.000</th><th>Activo</th></tr></thead>
           <tbody id="payment-methods-table"></tbody>
         </table>
       </div>
@@ -685,7 +685,7 @@
       <p class="payment-context" id="payment-context"></p>
       <div class="form-grid">
         <label>Medio de pago *<select name="methodId" id="payment-method" required></select></label>
-        <label>Monto *<input name="monto" type="number" min="0.01" step="0.01" required></label>
+        <label>Monto *<input name="monto" type="number" min="0.01" step="0.01" required><small>Cuánto cancela del pedido, a precio de lista. Si el medio tiene recargo, abajo te dice cuánto paga el cliente.</small></label>
         <label>Fecha del cobro<input name="fecha" type="date"></label>
         <label>Nº de recibo u observación<input name="notas" placeholder="Ej. Recibo 0034"></label>
       </div>

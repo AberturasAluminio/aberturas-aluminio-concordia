@@ -375,7 +375,12 @@
         medio: p.method_name,
         methodId: p.method_id,
         fecha: p.paid_at,
+        // `monto` es lo que cancela de la deuda, al precio de lista, y por eso
+        // es el que cierra contra el saldo. `cobrado` es lo que el cliente
+        // entregó de verdad: el mismo monto más el recargo por financiar.
         monto: Number(p.amount) || 0,
+        recargo: Number(p.surcharge_percent) || 0,
+        cobrado: Number(p.charged_amount) || 0,
         comision: Number(p.commission_percent) || 0,
         neto: Number(p.net_amount) || 0,
         notas: p.notes || "",
@@ -414,7 +419,10 @@
     cache.paymentMethods = (data || []).map((m) => ({
       id: m.id,
       name: m.name,
+      // Dos porcentajes opuestos: la comisión es lo que la tarjeta le retiene a
+      // ella; el recargo es lo que se le suma al cliente por financiar.
       commission: Number(m.commission_percent) || 0,
+      surcharge: Number(m.surcharge_percent) || 0,
       active: m.active !== false,
     }));
   }
@@ -1038,6 +1046,7 @@
     const fila = (m, i) => ({
       name: String(m.name || "").trim(),
       commission_percent: Math.min(100, Math.max(0, Number(m.commission) || 0)),
+      surcharge_percent: Math.min(200, Math.max(0, Number(m.surcharge) || 0)),
       active: m.active !== false,
       sort_order: i,
     });

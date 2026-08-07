@@ -204,11 +204,12 @@ function openOrderDetail(id) {
 
     <h3 class="order-subtitle">Cobros</h3>
     ${order.pagos.length ? `<table class="order-items order-pagos">
-      <thead><tr><th>Fecha</th><th>Medio</th><th>Monto</th><th>Neto</th><th></th></tr></thead>
+      <thead><tr><th>Fecha</th><th>Medio</th><th>Cancela</th><th>Pagó el cliente</th><th>Neto</th><th></th></tr></thead>
       <tbody>${order.pagos.map((pago) => `<tr>
         <td><small>${esc(fechaDia(pago.fecha))}</small>${pago.notas ? `<br><small>${esc(pago.notas)}</small>` : ""}</td>
         <td><small>${esc(pago.medio || "—")}</small></td>
         <td class="price-cell">${money.format(pago.monto)}</td>
+        <td class="price-cell">${money.format(pago.cobrado)}${pago.recargo ? `<br><small class="recargo-tag">+${pago.recargo}% recargo</small>` : ""}</td>
         <td class="price-cell"><small>${money.format(pago.neto)}${pago.comision ? ` <em>(-${pago.comision}%)</em>` : ""}</small></td>
         <td><button class="delete" data-payment-delete="${esc(pago.id)}" type="button">Borrar</button></td>
       </tr>`).join("")}</tbody>
@@ -274,7 +275,7 @@ function imprimirBoleta(order) {
 
     ${order.pagos.length ? `<section class="boleta-pagos">
       <h2>Cobros registrados</h2>
-      <ul>${order.pagos.map((pago) => `<li>${esc(fechaDia(pago.fecha))} · ${esc(pago.medio || "sin medio")} · ${money.format(pago.monto)}${pago.notas ? ` · ${esc(pago.notas)}` : ""}</li>`).join("")}</ul>
+      <ul>${order.pagos.map((pago) => `<li>${esc(fechaDia(pago.fecha))} · ${esc(pago.medio || "sin medio")} · ${money.format(pago.cobrado)}${pago.recargo ? ` <small>(cancela ${money.format(pago.monto)} + ${pago.recargo}% de recargo por financiar)</small>` : ""}${pago.notas ? ` · ${esc(pago.notas)}` : ""}</li>`).join("")}</ul>
     </section>` : ""}
 
     ${entrega.pendientes > 0
@@ -309,7 +310,7 @@ function ordersToRows() {
     order.saldo,
     order.estadoPago,
     order.estado,
-    order.pagos.map((pago) => `${fechaDia(pago.fecha)} ${pago.medio || "sin medio"}: ${pago.monto}`).join(" · "),
+    order.pagos.map((pago) => `${fechaDia(pago.fecha)} ${pago.medio || "sin medio"}: ${pago.monto}${pago.recargo ? ` (pagó ${pago.cobrado} con ${pago.recargo}% de recargo)` : ""}`).join(" · "),
   ])];
 }
 
@@ -324,7 +325,7 @@ function openPaymentEditor(orderId, todo = false) {
   const activos = adminState.paymentMethods.filter((method) => method.active);
   if (!activos.length) return showToast("Primero cargá un medio de pago en la pestaña Medios de pago");
   $("#payment-method").innerHTML = activos.map((method) =>
-    `<option value="${esc(method.id)}">${esc(method.name)}${method.commission ? ` · ${method.commission}% de comisión` : ""}</option>`).join("");
+    `<option value="${esc(method.id)}">${esc(method.name)}${method.surcharge ? ` · +${method.surcharge}% de recargo` : ""}</option>`).join("");
   $("#payment-editor-title").textContent = todo ? "Cobré todo" : "Registrar un pago";
   $("#payment-context").innerHTML = `Pedido <strong>${esc(order.numero)}</strong> de ${esc(order.cliente.nombre)} · Saldo <strong>${money.format(order.saldo)}</strong>`;
   form.elements.monto.value = todo ? Math.max(0, order.saldo).toFixed(2) : "";
@@ -333,25 +334,46 @@ function openPaymentEditor(orderId, todo = false) {
   openModal("#payment-editor");
 }
 
-/* Lo que de verdad le entra descontando la comisión. Se muestra al cargar el
-   cobro para que la comisión no sea una sorpresa a fin de mes. */
+/* Las dos puntas del cobro, que son distintas y las dos importan:
+     - cuánto tiene que pagar el cliente, con el recargo de financiación. Es el
+       número que ella dice en voz alta en el mostrador.
+     - cuánto le queda a ella después de la comisión de la tarjeta.
+   El monto del formulario es lo que cancela de la deuda, a precio de lista: el
+   recargo no lo toca, porque si no el saldo nunca cerraría. */
 function actualizarNetoDelPago() {
   const form = $("#payment-form");
   const monto = Number(form.elements.monto.value) || 0;
   const method = adminState.paymentMethods.find((item) => item.id === form.elements.methodId.value);
+  const recargo = method?.surcharge || 0;
   const comision = method?.commission || 0;
-  $("#payment-net").innerHTML = !monto || !comision
-    ? ""
-    : `Con ${comision}% de comisión te quedan <strong>${money.format(monto - (monto * comision) / 100)}</strong>`;
+  const paga = monto * (1 + recargo / 100);
+  const queda = paga * (1 - comision / 100);
+
+  if (!monto || (!recargo && !comision)) return void ($("#payment-net").innerHTML = "");
+  $("#payment-net").innerHTML = [
+    recargo ? `Con ${recargo}% de recargo el cliente paga <strong>${money.format(paga)}</strong>` : "",
+    comision ? `Con ${comision}% de comisión te quedan <strong>${money.format(queda)}</strong>` : "",
+  ].filter(Boolean).join("<br>");
 }
 
 /* ---------- Medios de pago ---------- */
 
+/* Sobre un pedido de lista de $100.000: lo que paga el cliente con el recargo, y
+   lo que le queda a ella después de que la tarjeta se lleve su comisión sobre
+   ese importe. Es el ejemplo que hace entender de un vistazo que recargo y
+   comisión van para lados distintos. */
+function ejemploDelMedio(method) {
+  const paga = 100000 * (1 + (method.surcharge || 0) / 100);
+  const queda = paga * (1 - (method.commission || 0) / 100);
+  return `<small>El cliente paga <strong>${money.format(paga)}</strong>${queda !== paga ? `<br>te quedan ${money.format(queda)}` : ""}</small>`;
+}
+
 function renderPaymentMethods() {
   $("#payment-methods-table").innerHTML = adminState.paymentMethods.map((method, i) => `<tr>
-    <td><input data-method-name value="${esc(method.name)}" data-index="${i}" placeholder="Ej. Mercado Pago"></td>
+    <td><input data-method-name value="${esc(method.name)}" data-index="${i}" placeholder="Ej. Tarjeta 3 cuotas"></td>
+    <td><input data-method-surcharge value="${method.surcharge || 0}" data-index="${i}" type="number" min="0" max="200" step="0.01" class="input-small"></td>
     <td><input data-method-commission value="${method.commission || 0}" data-index="${i}" type="number" min="0" max="100" step="0.01" class="input-small"></td>
-    <td class="price-cell"><small>${money.format(100000 - (100000 * (method.commission || 0)) / 100)}</small></td>
+    <td class="price-cell" data-method-example>${ejemploDelMedio(method)}</td>
     <td><label class="chip-check"><input data-method-active data-index="${i}" type="checkbox" ${method.active ? "checked" : ""}> Activo</label></td>
   </tr>`).join("");
 }
@@ -409,8 +431,14 @@ function renderDashboard() {
   // agosto es plata que entró en agosto.
   const cobros = todos.flatMap((order) => order.pagos.map((pago) => ({ ...pago, order })))
     .filter((pago) => dentroDe(`${String(pago.fecha).slice(0, 10)}T12:00:00`, rango));
-  const entrado = cobros.reduce((sum, pago) => sum + pago.monto, 0);
+  /* Tres números distintos por cobro y conviene no mezclarlos:
+       cancelado → lo que borró de la deuda, a precio de lista.
+       entrado   → lo que el cliente entregó de verdad, con el recargo encima.
+       neto      → lo que le queda después de la comisión de la tarjeta. */
+  const cancelado = cobros.reduce((sum, pago) => sum + pago.monto, 0);
+  const entrado = cobros.reduce((sum, pago) => sum + pago.cobrado, 0);
   const entradoNeto = cobros.reduce((sum, pago) => sum + pago.neto, 0);
+  const recargos = entrado - cancelado;
 
   const deudores = todos.filter(conSaldo);
   const deuda = deudores.reduce((sum, order) => sum + order.saldo, 0);
@@ -433,7 +461,10 @@ function renderDashboard() {
   $("#dash-cards").innerHTML = [
     tarjeta("Vendido (comprometido)", money.format(comprometido), anterior || `<em>${delPeriodo.length} pedido${delPeriodo.length === 1 ? "" : "s"}</em>`),
     tarjeta("Entregado", money.format(vendidoEntregado), `<em>${entregado.length} de ${delPeriodo.length}</em>`),
-    tarjeta("Entró (cobrado)", money.format(entrado), entrado !== entradoNeto ? `<em>Neto de comisiones ${money.format(entradoNeto)}</em>` : `<em>${cobros.length} cobro${cobros.length === 1 ? "" : "s"}</em>`),
+    tarjeta("Entró (cobrado)", money.format(entrado), [
+      recargos > 0 ? `Incluye ${money.format(recargos)} de recargos por financiar` : "",
+      entrado !== entradoNeto ? `Neto de comisiones ${money.format(entradoNeto)}` : "",
+    ].filter(Boolean).map((t) => `<em>${t}</em>`).join("") || `<em>${cobros.length} cobro${cobros.length === 1 ? "" : "s"}</em>`),
     tarjeta("Me deben", money.format(deuda), `<em>${deudores.length} pedido${deudores.length === 1 ? "" : "s"} · de todo el historial</em>`),
     tarjeta("Costo de la mercadería", money.format(costo)),
     tarjeta(
@@ -451,7 +482,7 @@ function renderDashboard() {
      alquiler, luz ni sueldos: esto es el resultado de vender, no la
      contabilidad del negocio, y esa cuenta la lleva ella por su lado. */
   const comisiones = entrado - entradoNeto;
-  const neta = margen + flete - comisiones;
+  const neta = margen + flete + recargos - comisiones;
   const renglon = (etiqueta, valor, signo) =>
     `<li><span>${etiqueta}</span><strong class="${signo === "−" ? "resta" : ""}">${signo} ${money.format(Math.abs(valor))}</strong></li>`;
   $("#dash-neta").innerHTML = `
@@ -460,6 +491,7 @@ function renderDashboard() {
       <ul>
         ${renglon("Ganancia de la mercadería", margen, margen < 0 ? "−" : "+")}
         ${renglon("Flete cobrado", flete, "+")}
+        ${recargos > 0 ? renglon("Recargos por financiar", recargos, "+") : ""}
         ${renglon("Comisiones de los medios de pago", comisiones, "−")}
       </ul>
     </div>
@@ -489,7 +521,8 @@ function renderDashboard() {
     const clave = pago.medio || "Sin medio";
     const fila = porMedio.get(clave) || { cobros: 0, bruto: 0, neto: 0 };
     fila.cobros += 1;
-    fila.bruto += pago.monto;
+    // Lo que entró por ese medio es lo que el cliente pagó, recargo incluido.
+    fila.bruto += pago.cobrado;
     fila.neto += pago.neto;
     porMedio.set(clave, fila);
   });
@@ -1224,9 +1257,13 @@ $("#payment-methods-table").addEventListener("input", (event) => {
   const method = adminState.paymentMethods[Number(campo.dataset.index)];
   if (!method) return;
   if (campo.hasAttribute("data-method-name")) method.name = campo.value;
-  if (campo.hasAttribute("data-method-commission")) {
-    method.commission = Number(campo.value) || 0;
-    renderPaymentMethods();   // se recalcula "de cada $100.000 te quedan"
+  if (campo.hasAttribute("data-method-commission")) method.commission = Number(campo.value) || 0;
+  if (campo.hasAttribute("data-method-surcharge")) method.surcharge = Number(campo.value) || 0;
+  /* Se repinta solo la celda del ejemplo, no la tabla entera: redibujarla en
+     cada tecla destruía el input que se estaba usando y hacía perder el foco,
+     así que no se podía escribir un número de dos cifras. */
+  if (campo.hasAttribute("data-method-commission") || campo.hasAttribute("data-method-surcharge")) {
+    campo.closest("tr").querySelector("[data-method-example]").innerHTML = ejemploDelMedio(method);
   }
 });
 $("#payment-methods-table").addEventListener("change", (event) => {
@@ -1236,7 +1273,7 @@ $("#payment-methods-table").addEventListener("change", (event) => {
   if (method) method.active = campo.checked;
 });
 $("#new-payment-method").addEventListener("click", () => {
-  adminState.paymentMethods.push({ name: "", commission: 0, active: true });
+  adminState.paymentMethods.push({ name: "", commission: 0, surcharge: 0, active: true });
   renderPaymentMethods();
 });
 $("#save-payment-methods").addEventListener("click", async () => {

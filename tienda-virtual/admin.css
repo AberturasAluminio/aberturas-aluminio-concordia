@@ -343,6 +343,11 @@ tr:hover td { background: var(--surface); }
 .order-flete label { margin: 0 !important; }
 .order-flete input { min-height: 40px; width: 150px; }
 
+/* El recargo suma, la comisión resta: se distinguen por color para que no se
+   lean como lo mismo de un vistazo. */
+.recargo-tag { color: var(--orange-dark); font-size: 11px; font-weight: 600; }
+[data-panel="payments"] th small { display: block; color: var(--ink-soft); font-weight: 400; letter-spacing: 0; text-transform: none; }
+
 /* ---------- Flete opcional ---------- */
 /* Prender el flete es una decisión normal, no una advertencia: el rojo que
    .chip-check usa para el filtro de deuda acá diría lo que no es. */
