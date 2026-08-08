@@ -5,6 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Tienda online de aberturas de aluminio en Concordia. Ventanas, puertas, rejas, portones y mamparas con medidas estándar y a medida. Envíos a Entre Ríos y Corrientes.">
   <title>Aberturas Aluminio Concordia | Tienda online</title>
+  <link rel="canonical" href="https://aberturasaluminioconcordia.com.ar/">
+
+  <!-- Previsualización al compartir el link (WhatsApp, Facebook, Instagram).
+       Va escrita en el HTML y repetida en cada página a propósito: los robots
+       que arman la tarjeta no ejecutan JavaScript, así que esto no se puede
+       generar desde layout.js como el resto del sitio. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Aberturas Aluminio Concordia">
+  <meta property="og:locale" content="es_AR">
+  <meta property="og:url" content="https://aberturasaluminioconcordia.com.ar/">
+  <meta property="og:title" content="Aberturas Aluminio Concordia | Tienda online">
+  <meta property="og:description" content="Ventanas, puertas, rejas y portones de aluminio con medidas y precios publicados. Fabricación propia en Concordia, Entre Ríos.">
+  <meta property="og:image" content="https://aberturasaluminioconcordia.com.ar/assets/og-compartir.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Ventanas, puertas y rejas de aluminio — Aberturas Aluminio Concordia">
+  <meta name="twitter:card" content="summary_large_image">
+
   <link rel="icon" href="assets/logo-color.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,6 +32,82 @@
   <script src="store.js" defer></script>
   <script src="layout.js" defer></script>
   <script src="app.js" defer></script>
+
+  <!-- Ficha del negocio para Google. Es la pieza que sostiene el SEO local:
+       le dice al buscador que esto es un negocio con local en Concordia y lo
+       ata a la ficha de Google Maps por `sameAs` y `hasMap`.
+
+       Ojo: estos datos están escritos acá, no salen del panel. Si la clienta
+       cambia dirección, teléfono, correo u horarios en Configuración, hay que
+       tocarlos también en este bloque. No se generan por JavaScript porque un
+       dato estático se lee mejor y no depende de que la base responda.
+
+       Los horarios van cortados en dos tramos por día porque el local cierra
+       al mediodía, y el domingo se declara abriendo y cerrando a las 00:00:
+       así se dice "cerrado" en schema.org. Omitir el día no alcanza — se leería
+       como que no se sabe, no como que está cerrado. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HomeAndConstructionBusiness",
+    "@id": "https://aberturasaluminioconcordia.com.ar/#negocio",
+    "name": "Aberturas Aluminio Concordia",
+    "description": "Fabricación y venta de aberturas de aluminio y herrería: ventanas, puertas, rejas, portones y mamparas. Medidas estándar con precio publicado y fabricación a medida.",
+    "url": "https://aberturasaluminioconcordia.com.ar/",
+    "logo": "https://aberturasaluminioconcordia.com.ar/assets/logo-color.png",
+    "image": "https://aberturasaluminioconcordia.com.ar/assets/og-compartir.jpg",
+    "telephone": "+5493454938829",
+    "email": "aberturasaluminioconcordia@gmail.com",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Humberto Primero 1166",
+      "addressLocality": "Concordia",
+      "addressRegion": "Entre Ríos",
+      "postalCode": "3200",
+      "addressCountry": "AR"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": -31.3856425,
+      "longitude": -58.0291929
+    },
+    "hasMap": "https://www.google.com/maps/place/Aberturas+Aluminio+Concordia/@-31.3856425,-58.0291929,17z/data=!4m6!3m5!1s0x95ade9f644cd8723:0x7268e4ad6931cc87!8m2!3d-31.3856425!4d-58.0291929!16s%2Fg%2F11fl7tw509",
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "08:00",
+        "closes": "13:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "17:00",
+        "closes": "20:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Saturday",
+        "opens": "09:00",
+        "closes": "13:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Sunday",
+        "opens": "00:00",
+        "closes": "00:00"
+      }
+    ],
+    "areaServed": [
+      { "@type": "AdministrativeArea", "name": "Entre Ríos" },
+      { "@type": "AdministrativeArea", "name": "Corrientes" }
+    ],
+    "sameAs": [
+      "https://www.instagram.com/aberturasaluminioconcordia/",
+      "https://www.facebook.com/AberturasAluminioConcordia2020/"
+    ]
+  }
+  </script>
 </head>
 <body data-page="home">
 
