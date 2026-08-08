@@ -2,3 +2,8 @@
 *.zip
 originales/
 .vercel/
+
+# Material original del cliente y de la demo, se conserva local pero no se entrega
+site/
+diseño-extraido/
+handoff-programador-demo-aberturas.md
