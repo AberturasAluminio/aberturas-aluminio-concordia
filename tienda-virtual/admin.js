@@ -258,7 +258,8 @@ function imprimirBoleta(order) {
       <thead><tr><th>Producto</th><th>Cant.</th><th>Entregado</th><th>Importe</th></tr></thead>
       <tbody>
         ${order.items.map((item) => `<tr>
-          <td>${esc(item.name)}<br><small>${esc(item.code)}${item.opciones ? ` · ${esc(item.opciones)}` : ""}</small></td>
+          ${/* Sin el código: la boleta se la lleva el cliente y ese dato es interno. */""}
+          <td>${esc(item.name)}${item.opciones ? `<br><small>${esc(item.opciones)}</small>` : ""}</td>
           <td>${item.cantidad}</td>
           <td>${item.entregado}${item.entregado < item.cantidad ? `<br><small>faltan ${item.cantidad - item.entregado}</small>` : ""}</td>
           <td class="price-cell">${item.precio === null ? "A cotizar" : money.format(item.precio * item.cantidad)}</td>
@@ -571,6 +572,10 @@ function localItemRowHTML() {
       <select data-local-product required><option value="">Elegir…</option>${opciones}</select></label>
     <label class="variant-field"><span>Medida</span>
       <select data-local-measure required><option value="">—</option></select></label>
+    <label class="variant-field"><span>Mano</span>
+      <select data-local-hand disabled><option value="">—</option></select></label>
+    <label class="variant-field"><span>Color</span>
+      <select data-local-color disabled><option value="">—</option></select></label>
     <label class="variant-field"><span>Cantidad</span>
       <input data-local-qty type="number" min="1" step="1" value="1" required></label>
     <label class="variant-field"><span>Precio unitario</span>
@@ -579,12 +584,27 @@ function localItemRowHTML() {
   </div>`;
 }
 
+/* Mano y color solo existen en algunos productos: la puerta tiene mano, el
+   aireador no. Cuando el producto no las ofrece el desplegable queda apagado en
+   "—", que se lee distinto de "me olvidé de elegirlo". */
+function llenarOpcionesDelProducto(row, product) {
+  [["hand", product?.hands], ["color", product?.colors]].forEach(([campo, valores]) => {
+    const select = row.querySelector(`[data-local-${campo}]`);
+    const lista = valores || [];
+    select.disabled = !lista.length;
+    select.innerHTML = lista.length
+      ? `<option value="">Elegir…</option>${lista.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("")}`
+      : '<option value="">—</option>';
+  });
+}
+
 function llenarMedidas(row) {
   const product = adminState.products.find((item) => item.code === row.querySelector("[data-local-product]").value);
   const select = row.querySelector("[data-local-measure]");
   select.innerHTML = product
     ? product.variants.map((variant) => `<option value="${esc(variant.measure)}">${esc(variant.measure)}</option>`).join("")
     : '<option value="">—</option>';
+  llenarOpcionesDelProducto(row, product);
   ponerPrecioDeLista(row);
 }
 
@@ -781,12 +801,9 @@ async function escalarImagen(file, max) {
   return canvas;
 }
 
-async function optimizeImage(file) {
-  return (await escalarImagen(file, 1000)).toDataURL("image/jpeg", .82);
-}
-
-/* El banner se sube al bucket como archivo, no como texto en base64: es una foto
-   grande y el contenido del sitio viaja en todas las páginas. */
+/* Las imágenes se suben al bucket como archivo, nunca como texto en base64
+   dentro de la fila: así el navegador las baja en paralelo y las cachea, en vez
+   de arrastrarlas dentro del JSON de productos en cada visita. */
 async function optimizarABlob(file, max) {
   const canvas = await escalarImagen(file, max);
   return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", .84));
@@ -1325,14 +1342,25 @@ $("#local-order-form").addEventListener("submit", async (event) => {
     const measure = row.querySelector("[data-local-measure]").value;
     const product = adminState.products.find((item) => item.code === code);
     const variant = product?.variants.find((item) => item.measure === measure);
+    const hand = row.querySelector("[data-local-hand]").value;
+    const color = row.querySelector("[data-local-color]").value;
     return {
       variantId: variant?.id || null,
-      code, name: product?.name || "", opciones: measure,
+      code, name: product?.name || "",
+      // Mismo formato que arma la tienda, así los dos canales se leen igual en
+      // el panel y en la boleta.
+      opciones: [measure, hand, color].filter(Boolean).join(", "),
+      falta: [
+        product?.hands.length && !hand ? "la mano" : "",
+        product?.colors.length && !color ? "el color" : "",
+      ].filter(Boolean),
       cantidad: Number(row.querySelector("[data-local-qty]").value) || 1,
       precio: Number(row.querySelector("[data-local-price]").value),
     };
   });
   if (items.some((item) => !item.variantId)) return showToast("Elegí el producto y la medida de cada fila");
+  const incompleto = items.find((item) => item.falta.length);
+  if (incompleto) return showToast(`Falta elegir ${incompleto.falta.join(" y ")} de ${incompleto.name}`);
   if (items.some((item) => !(item.precio >= 0))) return showToast("Revisá los precios: tienen que ser un número");
 
   const boton = event.target.querySelector('button[type="submit"]');
@@ -1385,11 +1413,28 @@ $("#delivery-zone-table").addEventListener("click", (event) => {
     }
   }
 });
+/* La foto va al bucket y en el producto queda su dirección. Antes se guardaba
+   la imagen entera en base64 dentro de la fila: 111 KB por foto medidos sobre
+   las reales, o sea unos 4 MB que viajaban en CADA carga de la tienda —dentro
+   del JSON de productos y antes de que se dibuje nada—. Con 38 productos eso es
+   una tienda que en un celular con datos no abre. */
 $("#image-file").addEventListener("change", async (event) => {
-  if (!event.target.files[0]) return;
-  adminState.editingImage = await optimizeImage(event.target.files[0]);
-  adminState.editingImages = [adminState.editingImage];
-  showToast("Imagen preparada para guardar");
+  const archivo = event.target.files[0];
+  if (!archivo) return;
+  showToast("Subiendo la imagen…");
+  try {
+    const blob = await optimizarABlob(archivo, 1400);
+    const url = await Store.uploadMedia(blob, "productos");
+    if (!url) return showToast("No se pudo subir la imagen");
+    adminState.editingImage = url;
+    adminState.editingImages = [url];
+    $("#product-form").elements.image.value = url;
+    showToast("Imagen subida. Guardá el producto para aplicarla.");
+  } catch {
+    showToast("No se pudo leer esa imagen. Probá con un JPG o PNG.");
+  } finally {
+    event.target.value = "";
+  }
 });
 $("#add-variant").addEventListener("click", () => addVariantRow());
 $("#variant-rows").addEventListener("click", (event) => {

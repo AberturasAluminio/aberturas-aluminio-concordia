@@ -180,7 +180,8 @@ function productType(product) {
 
 function productVisual(product) {
   const image = product.images?.[0] || product.image;
-  if (image) return `<img src="${esc(image)}" alt="${esc(product.name)}">`;
+  // Perezosa: con 38 productos en la grilla, solo se bajan las que se ven.
+  if (image) return `<img src="${esc(image)}" alt="${esc(product.name)}" loading="lazy" decoding="async">`;
   return `<div class="product-placeholder ${productType(product)}" aria-label="Imagen ilustrativa de ${esc(product.name)}"></div>`;
 }
 
@@ -242,7 +243,6 @@ function productCard(product) {
     <article class="product-card">
       <button class="product-media" data-view="${esc(product.code)}" type="button" aria-label="Ver ${esc(product.name)}">
         ${productVisual(product)}
-        <span class="product-code">${esc(product.code)}</span>
         ${hayOferta ? '<span class="product-sale">Oferta</span>' : ""}
       </button>
       <div class="product-body">
@@ -385,7 +385,7 @@ function openProduct(code) {
     <div class="product-detail-layout">
       <div class="detail-image">${productGallery(product)}</div>
       <div class="detail-info">
-        <span class="product-category">${esc(product.category)} · ${esc(product.code)}</span>
+        <span class="product-category">${esc(product.category)}</span>
         <h2>${esc(product.name)}</h2>
         <p>${esc(product.detail)}</p>
         <div class="detail-price">${precioHTML(varianteMasBarata(product)) || money.format(product.price)}</div>
@@ -539,7 +539,7 @@ function renderCart() {
       : money.format(precioActual(item) * item.quantity);
     return `<article class="cart-item">
       <div class="cart-thumb">${productVisual(product)}</div>
-      <div><h4>${esc(product.name)}</h4><p>${esc(options || product.code)}</p>
+      <div><h4>${esc(product.name)}</h4><p>${esc(options || product.category)}</p>
         <div class="quantity"><button data-cart-change="${esc(item.key)}" data-delta="-1" type="button">−</button><span>${item.quantity}</span><button data-cart-change="${esc(item.key)}" data-delta="1" type="button">+</button></div>
       </div>
       <div class="cart-item-side"><strong>${importe}</strong><button data-cart-remove="${esc(item.key)}" type="button">Quitar</button></div>
@@ -618,7 +618,9 @@ function cartLines() {
     const importe = esAPedido(item)
       ? "a confirmar"
       : money.format(precioActual(item) * item.quantity);
-    return `- ${item.quantity} x ${product.name} [${product.code}]${options ? ` (${options})` : ""}: ${importe}`;
+    /* Sin el código: es un dato interno del negocio y este mensaje lo lee el
+       cliente. El pedido igual llega al panel con el código en cada línea. */
+    return `- ${item.quantity} x ${product.name}${options ? ` (${options})` : ""}: ${importe}`;
   });
 }
 

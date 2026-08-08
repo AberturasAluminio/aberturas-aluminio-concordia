@@ -587,7 +587,7 @@
         <label>Manos<input name="hands" placeholder="Derecha / Izquierda"><small>Para puertas: Derecha / Izquierda.</small></label>
         <label>Colores<input name="colors" placeholder="Blanco / Negro"></label>
         <label class="span-2">URL de imagen<input name="image" type="url" placeholder="https://..."></label>
-        <label class="span-2">O cargar una imagen<input id="image-file" type="file" accept="image/*"><small>Se optimiza y guarda en este navegador.</small></label>
+        <label class="span-2">O cargar una imagen<input id="image-file" type="file" accept="image/jpeg,image/png,image/webp"><small>Se achica y se sube al servidor. Cuando termina completa el campo de arriba: después guardá el producto.</small></label>
         <label class="checkbox"><input name="active" type="checkbox" checked> Producto visible en la tienda</label>
         <label class="checkbox"><input name="featured" type="checkbox"> Mostrar en destacados</label>
       </div>
@@ -710,9 +710,9 @@
         <label class="span-2">Dirección<input name="direccion"></label>
         <div class="span-2 variant-editor">
           <div class="variant-editor-heading"><span>Productos *</span><button id="add-local-item" type="button">+ Agregar producto</button></div>
-          <p class="variant-help">Elegí el producto y la medida: el precio se completa solo con el de la lista y lo podés cambiar.</p>
+          <p class="variant-help">Elegí el producto y la medida: el precio se completa solo con el de la lista y lo podés cambiar. La mano y el color aparecen cuando el producto los tiene, y salen impresos en la boleta.</p>
           <div class="local-item-head" aria-hidden="true">
-            <span>Producto</span><span>Medida</span><span>Cant.</span><span>Precio unitario</span><span></span>
+            <span>Producto</span><span>Medida</span><span>Mano</span><span>Color</span><span>Cant.</span><span>Precio unitario</span><span></span>
           </div>
           <div id="local-item-rows"></div>
         </div>
