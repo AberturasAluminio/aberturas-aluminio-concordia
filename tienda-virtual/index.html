@@ -38,12 +38,14 @@
        ata a la ficha de Google Maps por `sameAs` y `hasMap`.
 
        Ojo: estos datos están escritos acá, no salen del panel. Si la clienta
-       cambia dirección, teléfono o correo en Configuración, hay que tocarlos
-       también en este bloque. No se generan por JavaScript porque un dato
-       estático se lee mejor y no depende de que la base responda.
+       cambia dirección, teléfono, correo u horarios en Configuración, hay que
+       tocarlos también en este bloque. No se generan por JavaScript porque un
+       dato estático se lee mejor y no depende de que la base responda.
 
-       Falta `openingHours` a propósito: no tenemos los horarios exactos, y
-       poner horarios inventados manda gente al local cuando está cerrado. -->
+       Los horarios van cortados en dos tramos por día porque el local cierra
+       al mediodía, y el domingo se declara abriendo y cerrando a las 00:00:
+       así se dice "cerrado" en schema.org. Omitir el día no alcanza — se leería
+       como que no se sabe, no como que está cerrado. -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -70,6 +72,32 @@
       "longitude": -58.0291929
     },
     "hasMap": "https://www.google.com/maps/place/Aberturas+Aluminio+Concordia/@-31.3856425,-58.0291929,17z/data=!4m6!3m5!1s0x95ade9f644cd8723:0x7268e4ad6931cc87!8m2!3d-31.3856425!4d-58.0291929!16s%2Fg%2F11fl7tw509",
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "08:00",
+        "closes": "13:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "17:00",
+        "closes": "20:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Saturday",
+        "opens": "09:00",
+        "closes": "13:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Sunday",
+        "opens": "00:00",
+        "closes": "00:00"
+      }
+    ],
     "areaServed": [
       { "@type": "AdministrativeArea", "name": "Entre Ríos" },
       { "@type": "AdministrativeArea", "name": "Corrientes" }
