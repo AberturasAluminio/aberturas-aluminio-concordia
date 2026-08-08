@@ -1,0 +1,14 @@
+# Aberturas Aluminio Concordia
+# Todo el sitio público es rastreable.
+#
+# admin.html NO se bloquea acá a propósito. El panel lleva su propio
+# <meta name="robots" content="noindex">, y para que Google lo lea primero
+# tiene que poder abrir la página: un Disallow se lo impediría y el panel
+# podría terminar igual en el buscador, listado solo por su dirección.
+# Bloquear por robots.txt y por noindex a la vez es la combinación que no
+# funciona.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://aberturasaluminioconcordia.com.ar/sitemap.xml

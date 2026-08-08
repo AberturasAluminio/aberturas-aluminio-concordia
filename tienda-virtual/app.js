@@ -298,6 +298,40 @@ function renderFaqs() {
           </details>`).join("")}
       </div>
     </section>`).join("");
+  renderFaqSchema(groups);
+}
+
+/* Los datos estructurados de las preguntas. Van por JavaScript y no escritos
+   en el HTML como el resto porque las 20 preguntas se editan desde el panel:
+   una copia a mano quedaría vieja al primer cambio.
+
+   Solo en la página dedicada. La home también las muestra, pero plegadas, y
+   dos FAQPage con el mismo contenido en dos direcciones es contenido
+   duplicado para Google. */
+function renderFaqSchema(groups) {
+  if (document.body.dataset.page !== "faq") return;
+  const preguntas = groups.flatMap((group) => group.items);
+  if (!preguntas.length) return;
+
+  const datos = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: preguntas.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: { "@type": "Answer", text: item.a },
+    })),
+  };
+
+  const script = document.createElement("script");
+  script.type = "application/ld+json";
+  // `esc()` no sirve acá: adentro de un <script> el navegador no interpreta
+  // entidades HTML, así que meter &amp; y &lt; rompería el JSON. Lo único
+  // peligroso es que una pregunta traiga un "<" que arme un cierre de script
+  // y corte el bloque. Se reemplaza por su escape JSON, que el parser vuelve
+  // a leer como el mismo carácter pero ya no cierra nada.
+  script.textContent = JSON.stringify(datos).replaceAll("<", "\\u003c");
+  document.head.appendChild(script);
 }
 
 /* ---------- Reseñas ----------
