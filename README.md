@@ -68,8 +68,24 @@ viajar al navegador.
 
 ## Publicar
 
-El sitio se despliega desde `tienda-virtual/`. Con el repositorio conectado a
-Vercel, cada push a `main` publica solo.
+El sitio se despliega desde `tienda-virtual/` — ese es el **Root Directory** del
+proyecto en Vercel. Si queda vacío, Vercel publica la raíz del repositorio y
+todas las páginas responden 404.
+
+Cada push a `main` dispara un deploy solo. Con una salvedad importante:
+
+> **El plan Hobby de Vercel bloquea los deploys de repositorios privados cuando
+> el autor del commit no es el dueño de la cuenta.** El deploy aparece como
+> *Blocked* y el sitio no se actualiza, aunque el commit sí haya llegado a
+> GitHub.
+>
+> Por eso los cambios de terceros entran por **Pull Request**: quien administra
+> el proyecto lo aprueba con **Create a merge commit**, el commit del merge
+> queda a su nombre y el deploy pasa. **No sirve *Squash and merge***: conserva
+> el autor original y vuelve a bloquearse.
+
+Además de resolver el bloqueo, el Pull Request deja ver qué cambia antes de que
+salga publicado, que en una tienda en producción no es un detalle menor.
 
 ## SEO
 
@@ -89,8 +105,13 @@ Dos cosas que parecen mejoras y **rompen** algo:
 
 Los `canonical` apuntan al dominio definitivo `aberturasaluminioconcordia.com.ar`.
 
-## Créditos de las imágenes
+## Las imágenes
 
-La foto del banner y las de categorías son de
-[Unsplash](https://unsplash.com) (licencia libre para uso comercial) y están
-puestas como muestra: se reemplazan por fotos reales de los trabajos.
+Las tres de categoría (`assets/categorias/`) son fotos reales de productos del
+negocio, recortadas en detalle: los banners son apaisados y las fotos originales
+verticales, así que mostrar la pieza entera dejaba más pared que producto.
+
+La foto del banner principal (`assets/hero-ambiente.webp`) es de
+[Unsplash](https://unsplash.com), licencia libre para uso comercial. **Se puede
+reemplazar desde el panel**, sin tocar el código: Textos comerciales → Banner
+principal.
